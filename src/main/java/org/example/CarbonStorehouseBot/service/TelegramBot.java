@@ -28,7 +28,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private ColleagueRepository colleagueRepository;
     private final BotConfig botConfig;
-    private final static String HELP_TEXT = "";
+    private final static String HELP_TEXT = " ";
 
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;

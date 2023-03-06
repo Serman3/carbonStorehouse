@@ -61,6 +61,7 @@ public class Colleague implements Serializable {
     public void setStatus_time(LocalDateTime status_time) {
         this.status_time = status_time;
     }
+
     @Override
     public String toString() {
         return "Colleague{" +

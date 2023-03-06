@@ -9,4 +9,5 @@ public class CarbonStorehouseBotApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CarbonStorehouseBotApplication.class, args);
 	}
+
 }

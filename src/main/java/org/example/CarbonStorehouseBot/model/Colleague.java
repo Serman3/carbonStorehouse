@@ -1,75 +1,51 @@
 package org.example.CarbonStorehouseBot.model;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "colleague")
 public class Colleague implements Serializable {
 
     @Id
+    @Column(name = "id",nullable = false)
     private Long chatId;
 
+    @Column(name = "first_name",columnDefinition = "VARCHAR(255)", nullable = false)
     private String firstName;
 
+    @Column(name = "last_name",columnDefinition = "VARCHAR(255)")
     private String lastName;
 
+    @Column(name = "user_name",columnDefinition = "VARCHAR(255)")
     private String userName;
 
-    private LocalDateTime status_time;
+    @Column(name = "date_register", columnDefinition = "DATETIME", nullable = false)
+    private LocalDateTime dateRegister;
 
+    @ManyToMany(mappedBy = "colleagues", fetch = FetchType.EAGER)
+    private Set<Fabric> fabrics = new HashSet<>();
 
-    public Long getChatId() {
-        return chatId;
-    }
-
-    public void setChatId(Long chatId) {
-        this.chatId = chatId;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public LocalDateTime getStatus_time() {
-        return status_time;
-    }
-
-    public void setStatus_time(LocalDateTime status_time) {
-        this.status_time = status_time;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Colleague colleague = (Colleague) o;
+        return Objects.equals(chatId, colleague.chatId) && Objects.equals(firstName, colleague.firstName) && Objects.equals(lastName, colleague.lastName) && Objects.equals(userName, colleague.userName) && Objects.equals(dateRegister, colleague.dateRegister);
     }
 
     @Override
-    public String toString() {
-        return "Colleague{" +
-                "chatId=" + chatId +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                ", userName='" + userName + '\'' +
-                ", status_time=" + status_time +
-                '}';
+    public int hashCode() {
+        return Objects.hash(chatId, firstName, lastName, userName, dateRegister);
     }
 }

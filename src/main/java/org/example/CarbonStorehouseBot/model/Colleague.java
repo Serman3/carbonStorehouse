@@ -33,7 +33,7 @@ public class Colleague implements Serializable {
     @Column(name = "date_register", columnDefinition = "DATETIME", nullable = false)
     private LocalDateTime dateRegister;
 
-    @ManyToMany(mappedBy = "colleagues", fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "colleagues", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private Set<Fabric> fabrics = new HashSet<>();
 
     @Override

@@ -16,4 +16,11 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     @Query(value = "DELETE FROM `fabric` WHERE id = :fabricId", nativeQuery = true)
     void deleteFabric(@Param("fabricId") String fabricId);
 
+    @Query(value = """
+            SELECT f.name_fabric, f.status_fabric, f.metric_area_batch, f.date_manufacture, sum(r.roll_metric) AS all_sum_metric
+            FROM carbon_storehouse.fabric f
+            JOIN carbon_storehouse.roll r ON f.id = r.fabric_id
+            WHERE r.fabric_id = :fabricId
+            """, nativeQuery = true)
+    String allInfoFabricAndSumMetricArea(@Param("fabricId") String fabricId);
 }

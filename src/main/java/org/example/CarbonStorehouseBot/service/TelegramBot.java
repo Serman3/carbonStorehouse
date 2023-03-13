@@ -2,10 +2,7 @@ package org.example.CarbonStorehouseBot.service;
 
 import com.vdurmont.emoji.EmojiParser;
 import org.example.CarbonStorehouseBot.config.BotConfig;
-import org.example.CarbonStorehouseBot.model.Colleague;
-import org.example.CarbonStorehouseBot.model.Fabric;
-import org.example.CarbonStorehouseBot.model.Roll;
-import org.example.CarbonStorehouseBot.model.StatusFabric;
+import org.example.CarbonStorehouseBot.model.*;
 import org.example.CarbonStorehouseBot.repository.ColleagueRepository;
 import org.example.CarbonStorehouseBot.repository.FabricRepository;
 import org.example.CarbonStorehouseBot.repository.RollRepository;
@@ -50,11 +47,12 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String YES_BUTTON = "YES_BUTTON";
     private static final String NO_BUTTON = "NO_BUTTON";
     private static final String START_OUTPUT = EmojiParser.parseToUnicode(" ,добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
-    private static final String REGEX_ADD_FABRIC = "[A|А][0-9]{2,3}\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[0-9]{3,4}$";
+    private static final String REGEX_ADD_NEW_BATCH = "[A|А][0-9]{2,3}\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[0-9]{3,4}$";
     private static final String REGEX_DELETE_FABRIC = "[0-9]{2,3}\\.[0-9]{2,3}$";
-    private static final String REGEX_ADD_ROLL = "\\d+(\\.\\d+)? \\d+(\\.\\d+)? \\d+(\\.\\d+)?";
-    private static final String REGEX_UPDATE_STATUS_FABRIC = "[0-9]{1,2}\\.[0-9]{2,3}\\sзавершить$";
-    private static final String REGEX_UPDATE_REMARK_ROLL = "\\d\\s[0-9]{2,3}\\.[0-9]{2,3}$";
+    private static final String REGEX_ADD_NEW_ROLL = "[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{2,3}$";
+    private static final String REGEX_READY_FABRIC = "[0-9]{1,2}\\.[0-9]{2,3}\\sзавершить$";
+    private static final String REGEX_REMARK_ROLL = "^\\d\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[А-Яа-яЁё]*.*";
+    private static final String REGEX_READY_ROLL = "^[0-9]{2,3}\\s\\d\\s[0-9]{2,3}\\.[0-9]{2,3}$";
     private Map<Long, String> inputDataUser = new HashMap<>();
 
     public TelegramBot(BotConfig botConfig) {
@@ -104,43 +102,60 @@ public class TelegramBot extends TelegramLongPollingBot {
             //--------Работа с партией-------------
             if(messageText.equals("/addnewbatch")){
                 //questionStatusFabric(chatId);
-                sendMessage(chatId, "Введите данные новой партии одним предложением через пробел, в порядке: название ткани, номер партии, метраж партии А60 23.012 400");
+                sendMessage(chatId, "Для добавления новой партии ведите название ткани, номер партии, метраж партии одним предложением через пробел, в формате: А60 23.012 400");
             }
-            if(inputDataUser.get(chatId).matches(REGEX_ADD_FABRIC)){
+            if(inputDataUser.get(chatId).matches(REGEX_ADD_NEW_BATCH)){
                 saveNewFabric(chatId, messageText);
             }
             if(messageText.equals("/deletefabric")){
-                sendMessage(chatId, "Для удаления партии ведите номер партии в формате: 23.023");
+                sendMessage(chatId, "Для удаления партии ведите номер партии, в формате: 23.023");
             }
             if(messageText.matches(REGEX_DELETE_FABRIC)){
                 deleteFabric(chatId, messageText);
             }
             if(messageText.equals("/readyfabric")){
-                sendMessage(chatId, "Чтобы законить партию введите номер партии и слово завершить через пробел в формате: 23.023 завершить");
+                sendMessage(chatId, "Чтобы законить партию введите номер партии и слово завершить одним предложеием через пробел, в формате: 23.023 завершить");
             }
-            if(messageText.matches(REGEX_UPDATE_STATUS_FABRIC)){
+            if(messageText.matches(REGEX_READY_FABRIC)){
                 updateStatusFabric(chatId, messageText);
             }
 
             //--------Работа с руллоном-------------
             if(messageText.equals("/addnewroll")){
-                sendMessage(chatId, "Для добавления руллона введите номер парти, номер руллона, метраж руллона одним предложением через пробел в формате: 23.023 1 55");
+                sendMessage(chatId, "Для добавления руллона введите номер парти, номер руллона, метраж руллона одним предложением через пробел, в формате: 23.023 1 55");
             }
-            if(messageText.matches(REGEX_ADD_ROLL)){
+            if(messageText.matches(REGEX_ADD_NEW_ROLL)){
                 saveNewRoll(messageText,chatId);
             }
             if(messageText.equals("/remarkroll")){
-                sendMessage(chatId, "Для внесения замечания по руллону введите номер руллона, номер партии одним предложением через пробел в формате: 1 23.023");
+                sendMessage(chatId, "Для внесения замечания по руллону введите номер руллона, номер партии и текст замечания одним предложением через пробел, в формате: 1 23.023 текст замечания");
             }
-            if(messageText.matches(REGEX_UPDATE_REMARK_ROLL)){
+            if(messageText.matches(REGEX_REMARK_ROLL)){
                 updateRemarkRoll(chatId, messageText);
             }
+            if(messageText.equals("/readyroll")){
+                sendMessage(chatId, "Чтобы закончить руллон введите фактический метраж, номер руллона, номер партии одним предложеием через пробел, в формате: 55 1 23.023");
+            }
+            if(messageText.matches(REGEX_READY_ROLL)){
+                updateStatusRoll(chatId, messageText);
+            }
+
+            //--------Работа с остатками-------------
+            if(messageText.equals("/remainder")){
+                SendMessage sendMessage = sendMessageFromFabricKeyboard(new SendMessage(String.valueOf(chatId), "Выберите по какой ткани показать остаток"));
+                executeMessage(sendMessage);
+            }
+            if(messageText.equals("А160")){
+
+            }
 
 
 
 
-
-
+            //--------help-------------
+            if(messageText.equals("/help")){
+                sendMessage(chatId, HELP_TEXT);
+            }
         }else if(update.hasCallbackQuery()){
             String callbackData = update.getCallbackQuery().getData();
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
@@ -185,6 +200,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 roll.setNumberRoll(Integer.parseInt(data[1]));
                 roll.setRollMetric(Integer.parseInt(data[2]));
                 roll.setDateFulfilment(LocalDateTime.now());
+                roll.setStatusRoll(StatusRoll.AT_WORK);
                 roll.setRemark(null);
                 roll.setFabric(fabric);
                 rollRepository.save(roll);
@@ -230,18 +246,37 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void updateRemarkRoll(long chatId, String inputData){
         String[] data = inputData.split("\s");
-        if(data.length != 2){
+        if(data.length < 2){
             sendMessage(chatId, "Не удается внести изменения по руллону, вы ввели не все данные");
         }
+        String numberRollAndNumberFabric = data[0] + " " + data[1] + " ";
+        String remark = inputData.replaceFirst(numberRollAndNumberFabric, "");
         Fabric fabric = fabricRepository.findById(data[1]).orElse(null);
         if(fabric != null){
             Roll roll = rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[0]), data[1]).get();
-            roll.setRemark("какойто текст");
+            roll.setRemark(remark);
             roll.setDateFulfilment(LocalDateTime.now());
             rollRepository.save(roll);
             sendMessage(chatId, "Замечания по руллону " + data[0] + " в партии " + data[1] + " внесены");
         }else{
             sendMessage(chatId, "Партии с номером " + data[1] + " нет в базе данных для внесения замечания по руллону");
+        }
+    }
+
+    private void updateStatusRoll(long chatId, String inputData){
+        String[] data = inputData.split("\s");
+        if(data.length != 3){
+            sendMessage(chatId, "Не удается завершить руллон, вы ввели не все данные");
+        }
+        Roll roll = rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[1]), data[2]).orElse(null);
+        if(roll != null){
+            roll.setStatusRoll(StatusRoll.READY);
+            roll.setRollMetric(Integer.parseInt(data[0]));
+            roll.setDateFulfilment(LocalDateTime.now());
+            rollRepository.save(roll);
+            sendMessage(chatId, "Руллон с номером " + data[1] + " завершен");
+        }else{
+            sendMessage(chatId, "Руллона с номером " + data[1] + " нет в базе данных для завершения");
         }
     }
 
@@ -268,7 +303,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(sendMessage);
     }
 
-    public void sendMessageFromFabricKeyboard(SendMessage sendMessage){
+    public SendMessage sendMessageFromFabricKeyboard(SendMessage sendMessage){
         //клавиатура привязывается к конеретному сообщению
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
@@ -283,6 +318,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         keyboardRows.add(row);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
+        return sendMessage;
     }
 
     private void executeEditMessageText(String text, long chatId, long messageId){

@@ -19,6 +19,7 @@
 	</properties>
 
 	<dependencies>
+		<!--spring-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
@@ -66,6 +67,19 @@
 			<groupId>com.vdurmont</groupId>
 			<artifactId>emoji-java</artifactId>
 			<version>5.1.1</version>
+		</dependency>
+
+		<!-- poi excel -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>4.1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>4.1.2</version>
 		</dependency>
 	</dependencies>
 

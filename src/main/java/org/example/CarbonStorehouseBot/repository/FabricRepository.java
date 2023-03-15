@@ -7,6 +7,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Repository
 public interface FabricRepository extends CrudRepository<Fabric, String> {
@@ -17,10 +18,15 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     void deleteFabric(@Param("fabricId") String fabricId);
 
     @Query(value = """
-            SELECT f.name_fabric, f.status_fabric, f.metric_area_batch, f.date_manufacture, sum(r.roll_metric) AS all_sum_metric
+            SELECT f.id, f.name_fabric, f.status_fabric, f.metric_area_batch, f.date_manufacture, sum(r.roll_metric) AS actual_metric
             FROM carbon_storehouse.fabric f
             JOIN carbon_storehouse.roll r ON f.id = r.fabric_id
             WHERE r.fabric_id = :fabricId
             """, nativeQuery = true)
-    String allInfoFabricAndSumMetricArea(@Param("fabricId") String fabricId);
+    List<Object[]> allInfoFabricAndSumMetricArea(@Param("fabricId") String fabricId);
+
+    @Query(value = """
+            SELECT * FROM `fabric` f WHERE f.status_fabric = :statusFabric
+            """, nativeQuery = true)
+    List<Fabric> findByAllStatusFabricReady(@Param("statusFabric")String statusFabric);
 }

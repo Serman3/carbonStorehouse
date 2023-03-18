@@ -24,9 +24,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.apache.poi.xssf.usermodel.*;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,12 +41,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     private RollRepository rollRepository;
     @Autowired
     private FabricRepository fabricRepository;
+    @Autowired
+    private WriteFile writeFile;
+
     private final BotConfig botConfig;
-    private static final String HELP_TEXT = "Сохранять данные нужно в таком порядке:" + "\n" +
-            "1) Когда начинаете новую партию, нажмите в меню кнопку <<addnewbatch>> после этого вводите " +
-            "одним предложением через пробел, в порядке: название ткани, номер партии, метраж партии А60 23.012 400." +
-            "2) После этого начинаете делать новый руллон, нажмите в меню кнопку <<addnewroll>>, вводите одним предложением через пробел, " +
-            "в порядке: номер партии, номер руллона";
     private static final String YES_BUTTON = "YES_BUTTON";
     private static final String NO_BUTTON = "NO_BUTTON";
     private static final String START_OUTPUT = EmojiParser.parseToUnicode(" ,добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
@@ -59,7 +55,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String REGEX_REMARK_ROLL = "^\\d\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[А-Яа-яЁё]*.*";
     private static final String REGEX_READY_ROLL = "^[0-9]{2,3}\\s\\d\\s[0-9]{2,3}\\.[0-9]{2,3}$";
     private static final String REGEX_READY_FABRIC_DATA = "[0-9]{2,3}\\.[0-9]{2,3}$";
-    private Map<Long, String> inputDataUser = new HashMap<>();
+    private static final String HELP_TEXT = "Сохранять данные нужно в таком порядке:" + "\n" +
+            "1) Когда начинаете новую партию, нажмите в меню кнопку <<addnewbatch>> после этого вводите " +
+            "одним предложением через пробел, в порядке: название ткани, номер партии, метраж партии А60 23.012 400." +
+            "2) После этого начинаете делать новый руллон, нажмите в меню кнопку <<addnewroll>>, вводите одним предложением через пробел, " +
+            "в порядке: номер партии, номер руллона";
 
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
@@ -99,7 +99,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(update.hasMessage() && update.getMessage().hasText()){
             long chatId = update.getMessage().getChatId();
             String messageText = update.getMessage().getText();
-            inputDataUser.put(chatId, messageText);
 
             if(messageText.equals("/start")){
                 sendMessage(chatId, update.getMessage().getChat().getFirstName() + START_OUTPUT);
@@ -111,7 +110,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 //questionStatusFabric(chatId);
                 sendMessage(chatId, "Для добавления новой партии ведите название ткани, номер партии, метраж партии одним предложением через пробел, в формате: А60 23.012 400");
             }
-            if(inputDataUser.get(chatId).matches(REGEX_ADD_NEW_BATCH)){
+            if(messageText.matches(REGEX_ADD_NEW_BATCH)){
                 saveNewFabric(chatId, messageText);
             }
             if(messageText.equals("/deletefabric")){
@@ -152,8 +151,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 SendMessage sendMessage = sendMessageFromFabricKeyboardNameFabric(new SendMessage(String.valueOf(chatId), "Выберите по какой ткани показать остаток"));
                 executeMessage(sendMessage);
             }
-            if(messageText.equals("А40")){
-
+            if(messageText.equalsIgnoreCase("А40")){
+                writeFile.writeExcelFileAllReadyFabric(getRemainderFabrics(chatId, messageText), messageText);
+                sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }
             if(messageText.equals("А60")){
 
@@ -171,13 +171,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 SendMessage sendMessage = sendMessageFromFabricKeyboardNumberFabric(new SendMessage(String.valueOf(chatId), "Выберите по какой партии показать данные"));
                 executeMessage(sendMessage);
             }
-            if(messageText.matches(REGEX_READY_FABRIC_DATA) || messageText.equals("Все готовые партии")){
-                writeExcelFileExample(fabricRepository.allInfoFabricAndSumMetricArea(messageText), rollRepository.findByFabricId(messageText), messageText);
+            if(messageText.matches(REGEX_READY_FABRIC_DATA)){
+                writeFile.writeExcelFileExample(fabricRepository.allInfoFabricAndSumMetricArea(messageText), rollRepository.findByFabricId(messageText), messageText);
+                sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
+            }if(messageText.equals("Все готовые партии")){
+                writeFile.writeExcelFileAllReadyFabric(getAllDataFabricStatusReady(), messageText);
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }
-
-
-
 
             //--------help-------------
             if(messageText.equals("/help")){
@@ -269,6 +269,31 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private Map<List<Object[]>, List<Roll>> getAllDataFabricStatusReady() {
+        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        List<Fabric> fabrics = fabricRepository.findByAllStatusFabricReady(StatusFabric.READY.toString());
+        for (Fabric fabric : fabrics) {
+            List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricArea(fabric.getBatchNumberId());
+            List<Roll> rollLists = rollRepository.findByFabricId(fabric.getBatchNumberId());
+            allDataFabric.put(infoFabrics, rollLists);
+        }
+        return allDataFabric;
+    }
+
+    private Map<List<Object[]>, List<Roll>> getRemainderFabrics(long chatId, String messageText){
+        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        List<Fabric> fabricList = fabricRepository.findByNameFabric(messageText);
+        if(fabricList.isEmpty()){
+            sendMessage(chatId, "Остатков по ткани " + messageText + " на складе нет");
+        }else {
+            for(Fabric fabric : fabricList){
+                List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetricArea(fabric.getNameFabric());
+                List<Roll> allRoll = rollRepository.findByFabricId(fabric.getBatchNumberId());
+                allDataFabric.put(allInfo, allRoll);
+            }
+        }
+        return allDataFabric;
+    }
 
     //--------------ROLL------------------------------------ROLL----------
     private void saveNewRoll(String inputData, long chatId){
@@ -447,143 +472,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage.setReplyMarkup(markupInLine);
 
         executeMessage(sendMessage);
-    }
-
-
-    //--------------WRITE_EXCEL_FILE--------------------WRITE_EXCEL_FILE------------
-    private void writeExcelFileExample(List<Object[]> fabricAndMetricData, List<Roll> rollList, String messageText){
-        if (messageText.equals("Все готовые партии")){
-            List<Fabric> fabrics = fabricRepository.findByAllStatusFabricReady(StatusFabric.READY.toString());
-            for (Fabric fabric : fabrics){
-                List<Object[]> allInfoFabrics = fabricRepository.allInfoFabricAndSumMetricArea(fabric.getBatchNumberId());
-            }
-        }
-
-        for (Object[] o : fabricAndMetricData){
-            for (Object obj : o){
-                System.out.println(obj.toString());
-            }
-        }
-        for(Roll roll : rollList){
-            System.out.println(roll.getNumberRoll() + " " + roll.getRemark() + " " + roll.getRollMetric());
-        }
-        // Создаем новый Excel-файл
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        XSSFSheet sheet = workbook.createSheet("Партия");
-
-        for (int i = 0; i <= fabricAndMetricData.size(); i++){
-            XSSFRow row = sheet.createRow(i);
-            if (i == 0){
-                // Создаем ячейки и записываем в них значения
-                XSSFCell cell0 = row.createCell(0);
-                cell0.setCellValue("Номер партии");
-
-                XSSFCell cell1 = row.createCell(1);
-                cell1.setCellValue("Название партии");
-
-                XSSFCell cell2 = row.createCell(2);
-                cell2.setCellValue("Метраж партии");
-
-                XSSFCell cell3 = row.createCell(3);
-                cell3.setCellValue("Дата изготовления");
-
-                XSSFCell cell4 = row.createCell(4);
-                cell4.setCellValue("Фактический метраж партии");
-
-                XSSFCell cell5 = row.createCell(5);
-                cell5.setCellValue("Статус партии");
-            }else {
-                for (Object[] dataFabric : fabricAndMetricData){
-                    for (int column = 0; column < dataFabric.length; column++){
-                        XSSFCell cell = row.createCell(column);
-                        switch (column){
-                            case 0:
-                                cell.setCellValue(dataFabric[0].toString());
-                                break;
-                            case 1:
-                                cell.setCellValue(dataFabric[1].toString());
-                                break;
-                            case 2:
-                                cell.setCellValue(dataFabric[3].toString());
-                                break;
-                            case 3:
-                                cell.setCellValue(dataFabric[4].toString());
-                                break;
-                            case 4:
-                                cell.setCellValue(dataFabric[5].toString());
-                                break;
-                            case 5:
-                                cell.setCellValue(dataFabric[2].toString());
-                                break;
-                        }
-
-                    }
-                }
-            }
-        }
-
-        XSSFSheet sheet2 = workbook.createSheet("Руллоны");
-        for (int i = 0; i <= rollList.size(); i++){
-            XSSFRow row = sheet2.createRow(i);
-            if (i == 0){
-                // Создаем ячейки и записываем в них значения
-                XSSFCell cell0 = row.createCell(0);
-                cell0.setCellValue("Номер руллона");
-
-                XSSFCell cell1 = row.createCell(1);
-                cell1.setCellValue("Метраж руллона");
-
-                XSSFCell cell2 = row.createCell(2);
-                cell2.setCellValue("Заметка");
-
-                XSSFCell cell3 = row.createCell(3);
-                cell3.setCellValue("Дата изготовления");
-
-                XSSFCell cell4 = row.createCell(4);
-                cell4.setCellValue("Статус руллона");
-            }else {
-                int count = 0;
-                for (Roll roll : rollList){
-                    XSSFCell cell = row.createCell(count);
-                    count++;
-                    cell.setCellValue(roll.getNumberRoll());
-                    cell.setCellValue(roll.getRollMetric());
-                    cell.setCellValue(roll.getRemark());
-                    cell.setCellValue(roll.getDateFulfilment().toString());
-                    cell.setCellValue(roll.getStatusRoll().toString());
-/*
-                    for (int column = 0; column < rollList.size(); column++){
-                        XSSFCell cell = row.createCell(column);
-                        switch (column){
-                            case 0:
-                                cell.setCellValue(roll.getNumberRoll());
-                                break;
-                            case 1:
-                                cell.setCellValue(roll.getRollMetric());
-                                break;
-                            case 2:
-                                cell.setCellValue(roll.getRemark());
-                                break;
-                            case 3:
-                                cell.setCellValue(roll.getDateFulfilment().toString());
-                                break;
-                            case 4:
-                                cell.setCellValue(roll.getStatusRoll().toString());
-                                break;
-                        }
-                    }*/
-                }
-            }
-        }
-
-        // Сохраняем файл
-        try {
-            FileOutputStream outputStream = new FileOutputStream("C:/doc/" + messageText + ".xlsx");
-            workbook.write(outputStream);
-            workbook.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
 }

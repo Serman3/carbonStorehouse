@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
+
 @Repository
 public interface FabricRepository extends CrudRepository<Fabric, String> {
 
@@ -29,4 +30,7 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
             SELECT * FROM `fabric` f WHERE f.status_fabric = :statusFabric
             """, nativeQuery = true)
     List<Fabric> findByAllStatusFabricReady(@Param("statusFabric")String statusFabric);
+
+    @Query(value = "SELECT * FROM `fabric` f WHERE f.name_fabric = :nameFabric", nativeQuery = true)
+    List<Fabric> findByNameFabric(String nameFabric);
 }

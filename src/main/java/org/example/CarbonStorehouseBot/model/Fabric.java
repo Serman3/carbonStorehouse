@@ -21,7 +21,7 @@ public class Fabric implements Serializable {
     private String batchNumberId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_fabric", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK')", nullable = false)
+    @Column(name = "status_fabric", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK', 'SOLD_OUT')", nullable = false)
     private StatusFabric statusFabric;
 
     @Column(name = "name_fabric", columnDefinition = "TEXT", nullable = false)

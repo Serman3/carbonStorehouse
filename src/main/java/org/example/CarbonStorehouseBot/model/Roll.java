@@ -30,7 +30,7 @@ public class Roll {
     private LocalDateTime dateFulfilment;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_roll", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK')", nullable = false)
+    @Column(name = "status_roll", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK', 'SOLD_OUT')", nullable = false)
     private StatusRoll statusRoll;
 
     @ManyToOne(cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.EAGER)

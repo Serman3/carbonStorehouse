@@ -28,4 +28,14 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
 
    @Query(value = "SELECT * FROM `roll` WHERE `fabric_id` = :fabricId", nativeQuery = true)
    List<Roll> findByFabricId(@Param("fabricId") String fabricId);
+
+   @Transactional
+   @Modifying
+   @Query(value = "UPDATE roll r SET r.status_roll = :statusRoll WHERE r.fabric_id = :fabricId", nativeQuery = true)
+   void updateStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId);
+
+ /*  @Transactional
+   @Modifying
+   @Query(value = "DELETE FROM `rolls_colleagues_table` r WHERE r.roll_id = :id", nativeQuery = true)
+   void deleteFromRollAndColleague(@Param("id") long id);*/
 }

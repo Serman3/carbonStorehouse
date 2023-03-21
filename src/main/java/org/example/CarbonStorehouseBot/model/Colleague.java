@@ -36,6 +36,9 @@ public class Colleague implements Serializable {
     @ManyToMany(mappedBy = "colleagues", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private Set<Fabric> fabrics = new HashSet<>();
 
+   /* @ManyToMany(mappedBy = "colleaguess", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    private Set<Roll> rolls = new HashSet<>();*/
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -37,6 +37,32 @@ public class Roll {
     @JoinColumn(name = "fabric_id", referencedColumnName = "id", nullable = false)
     private Fabric fabric;
 
+   /* @ManyToMany(cascade = {CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinTable(name = "rolls_colleagues_table",
+            joinColumns = {@JoinColumn(name = "roll_id", referencedColumnName = "id")
+            },
+            inverseJoinColumns = {
+                    @JoinColumn(name = "colleague_id", referencedColumnName = "id")
+            })
+    private Set<Colleague> colleaguess = new HashSet<>();
+
+    public void addColleague(Colleague colleague) {
+        colleaguess.add(colleague);
+        colleague.getRolls().add(this);
+    }
+
+    public void removeColleague(Colleague colleague) {
+        colleaguess.remove(colleague);
+        colleague.getRolls().remove(this);
+    }
+
+    public void remove(){
+        for(Colleague colleague : new ArrayList<>(colleaguess)){
+            removeColleague(colleague);
+        }
+    }*/
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

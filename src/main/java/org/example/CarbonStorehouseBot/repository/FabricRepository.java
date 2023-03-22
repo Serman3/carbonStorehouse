@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Set;
 
 
 @Repository
@@ -38,4 +39,7 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     @Modifying
     @Query(value = "UPDATE fabric f SET f.status_fabric = :statusFabric WHERE f.id = :id", nativeQuery = true)
     void updateStatusFabric(@Param("statusFabric") String statusFabric, @Param("id") String id);
+
+    @Query(value = "SELECT name_fabric FROM fabric", nativeQuery = true)
+    Set<String> findAllNameFabric();
 }

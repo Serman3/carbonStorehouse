@@ -22,6 +22,10 @@ public class WriteFile {
     private final String[] headersRoll = {"Номер руллона", "Метраж руллона", "Заметка", "Дата изготовления", "Статус руллона", "Номер партии"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
+        if(messageText.equals("Проданные партии")){
+            headersFabric[3] = "Дата продажи";
+            headersRoll[3] = "Дата продажи";
+        }
         // Создаем новый Excel-файл
         XSSFWorkbook workbook = new XSSFWorkbook();
         // Задаем стиль, текст в ячейке по центру

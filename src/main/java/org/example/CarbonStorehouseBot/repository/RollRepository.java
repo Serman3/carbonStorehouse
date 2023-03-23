@@ -30,6 +30,14 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
    @Query(value = "SELECT * FROM `roll` WHERE `fabric_id` = :fabricId", nativeQuery = true)
    List<Roll> findByFabricId(@Param("fabricId") String fabricId);
 
+   @Query(value = """
+            SELECT r.*
+            FROM roll r
+            JOIN fabric f ON f.id = r.fabric_id
+            WHERE r.status_roll = :statusRoll AND f.status_fabric = :statusFabric
+            """, nativeQuery = true)
+   List<Roll> getAllSoldOutRollInReadyFabric(@Param("statusRoll") String statusRoll, @Param("statusFabric") String statusFabric);
+
    @Transactional
    @Modifying
    @Query(value = """

@@ -44,27 +44,27 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String YES_BUTTON = "YES_BUTTON";
     private static final String NO_BUTTON = "NO_BUTTON";
     private Map<Long, String> userStates = new HashMap<>();
-    private static final String START_OUTPUT = EmojiParser.parseToUnicode(" ,добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
+    private static final String START_OUTPUT = EmojiParser.parseToUnicode(", добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
     private static final String REGEX_ADD_NEW_FABRIC = "[A|А][0-9]{2,3}\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[0-9]{3,4}$";
     private static final String REGEX_NUMBER_FABRIC_AND_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d$";
     private static final String REGEX_REMARK_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[А-Яа-яЁё]*.*";
     private static final String REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{2,3}$";
     private static final String REGEX_READY_FABRIC_DATA = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\А[0-9]{2,3}$";
     private static final String REGEX_NUMBER_FABRIC = "^[0-9]{2,3}\\.[0-9]{2,3}$";
-    private static final String HELP_TEXT = "Начинать партию нужно в таком порядке:" + "\n" +
-            "1) Когда начинаете новую партию, нажмите в меню кнопку <<addnewbatch>> после этого вводите " +
-            "одним предложением через пробел, в формате: название ткани, номер партии, метраж партии А60 23.012 400" + "\n" +
-            "2) После этого начинаете делать новый рулон, нажмите в меню кнопку <<addnewroll>>, вводите одним предложением через пробел, в формате: " +
-            "номер парти, номер рулона, метраж рулона 23.023 1 55" + "\n" +
-            "3) Когда закончили рулон, нажмите в меню кнопку <<readyroll>>, вводите одним предложением через пробел, в формате: " +
-            "фактический метраж, номер рулона, номер партии 55 1 23.023" + "\n" +
-            "Тоесть каждый раз когда вы начинаете делать новый рулон, вы должны нажимать кнопку <<addnewroll>>, когда вы закничваете, жмете <<readyroll>> " +
-            "Когда вы сделали нужное количесво рулонов для партии и внесли все данные в порядке, котрый указан выше, теперь вы можете нажать кнопку <<readyFabric>>, для завершения партии" + "\n" +
-            "4) Теперь вы можете завершить партию, для этого нажмите <<readyFabric>>, введите одним предложением через пробел, в формате: номер партии и слово завершить 23.023 завершить" + "\n" +
-            "Кнопка <<remarkroll>> для внесения замечаний по рулону, внести замечания вы можете в любой момент (например хвост или какойто косяк в рулоне), одним предложением через пробел, в формате: " +
-            "номер руллона, номер партии и текст замечания 1 23.023 текст замечания" + "\n" +
-            "Кнопка <<deletefabric>> удаляет партию, возможно вы могли по ошибке внести не правильные данные, введите одним предложением через пробел, в формате: 23.023 удалить партию" + "\n" +
-            "Кнопка <<deleteRoll>> удаляет рулон, возможно вы могли по ошибке внести не правильные данные, введите одним предложением через пробел, в формате: 23.023 1 удалить рулон";
+    private static final String HELP_TEXT = "Чтобы корректно добавлялись данные, нужно следовать этим дейсвтиям:" + "\n" +
+            "1) Чтобы начать работу с новой партией, нажмите в меню кнопку /addnewfabric" + "\n" +
+            "2) После этого начинаете делать новый рулон, нажмите в меню кнопку /addnewroll" + "\n" +
+            "3) Когда закончили рулон, нажмите в меню кнопку /finishroll" + "\n" +
+            "Тоесть каждый раз когда вы начинаете делать новый рулон, вы должны нажимать кнопку /addnewroll, а когда закничваете, жмете /finishroll " +
+            "Когда вы сделали нужное количесво рулонов для партии и внесли все данные в порядке, котрый указан выше, теперь вы можете нажать кнопку /finishfabric, для завершения партии." + "\n" +
+            "4) Теперь вы можете завершить партию, для этого нажмите /finishfabric" + "\n" +
+            "Кнопка /remarkroll для внесения замечаний по рулону, внести замечания вы можете в любой момент (например хвост или какойто косяк в рулоне)." + "\n" +
+            "Кнопка /updatemetricroll для изменения метража рулона, например отрезали от рулона кусок на продажу." + "\n" +
+            "Кнопка /deleteroll удаляет рулон, возможно вы могли по ошибке внести не правильные данные." + "\n" +
+            "Кнопка /deletefabric удаляет партию, возможно вы могли по ошибке внести не правильные данные." + "\n" +
+            "Кнопки /soldoutfabric и /soldoutroll для того чтобы пометить партию или рулон как проданные." + "\n" +
+            "Остальные кнопки для вывода информации по партиям и рулонам, вся информация пишется в excel файл с 2мя листами, на первом листе данные партии, на втором листе данные по рулонам этой партии." + "\n" +
+            "Чтобы выполнить какое-то действие, каждый раз вы должны выбирать в меню нужное.";
 
     public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
@@ -72,18 +72,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/start", "Вступительное сообщение"));
        // listOfCommands.add(new BotCommand("/startworkshift", "Начать новую смену"));
         listOfCommands.add(new BotCommand("/addnewfabric", "Начать новую партию"));
-        listOfCommands.add(new BotCommand("/finishfabric", "Закончить партию"));
-        listOfCommands.add(new BotCommand("/deletefabric", "Удалить партию"));
         listOfCommands.add(new BotCommand("/addnewroll", "Начать новый рулон"));
         listOfCommands.add(new BotCommand("/finishroll", "Закончить рулон"));
-        listOfCommands.add(new BotCommand("/deleteroll", "Удалить рулон"));
+        listOfCommands.add(new BotCommand("/finishfabric", "Закончить партию"));
         listOfCommands.add(new BotCommand("/remarkroll", "Внести замечания по рулону"));
         listOfCommands.add(new BotCommand("/updatemetricroll", "Обновить метраж рулона"));
-        listOfCommands.add(new BotCommand("/marksoldoutfabric", "Пометить партию, как проданную"));
-        listOfCommands.add(new BotCommand("/marksoldoutroll", "Пометить рулон, как проданный"));
+        listOfCommands.add(new BotCommand("/deleteroll", "Удалить рулон"));
+        listOfCommands.add(new BotCommand("/deletefabric", "Удалить партию"));
+        listOfCommands.add(new BotCommand("/soldoutfabric", "Пометить партию, как проданную"));
+        listOfCommands.add(new BotCommand("/soldoutroll", "Пометить рулон, как проданный"));
         listOfCommands.add(new BotCommand("/remainder", "Остаток по ткани"));
-        listOfCommands.add(new BotCommand("/readyfabricdata", "Посмотреть готовые партии"));
-        listOfCommands.add(new BotCommand("/soldoutfabricdata", "Посмотреть проданные партии и руллоны"));
+        listOfCommands.add(new BotCommand("/datareadyfabric", "Посмотреть готовые партии"));
+        listOfCommands.add(new BotCommand("/datasoldoutfabric", "Посмотреть проданные партии и рулоны"));
         listOfCommands.add(new BotCommand("/help", "Информация по боту"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -119,7 +119,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             //--------Работа с партией-------------
             if(messageText.equals("/addnewfabric")){
                 //questionStatusFabric(chatId);
-                sendMessage(chatId, "Для добавления новой партии ведите название ткани, номер партии, метраж партии одним предложением через пробел, в формате: А60 23.023 400");
+                sendMessage(chatId, "Для добавления новой партии введите название ткани, номер партии, метраж партии, одним предложением через пробел, в формате: А60 23.023 400");
                 setState(chatId, "ADD_NEW_BATCH");
             }
             if(state.equals("ADD_NEW_BATCH")){
@@ -142,7 +142,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 finishTheFabric(chatId, messageText);
                 deleteState();
             }
-            if(messageText.equals("/marksoldoutfabric")){
+            if(messageText.equals("/soldoutfabric")){
                 sendMessage(chatId, "Чтобы пометить партию как проданную, введите номер партии, в формате: 23.023");
                 setState(chatId, "MARK_SOLD_OUT_FABRIC");
             }
@@ -153,7 +153,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             //--------Работа с руллоном-------------
             if(messageText.equals("/addnewroll")){
-                sendMessage(chatId, "Для добавления рулона введите номер парти, номер рулона одним предложением через пробел, в формате: 23.023 1");
+                sendMessage(chatId, "Для добавления рулона введите номер парти, номер рулона, одним предложением через пробел, в формате: 23.023 1");
                 setState(chatId, "ADD_NEW_ROLL");
             }
             if(state.equals("ADD_NEW_ROLL")){
@@ -161,7 +161,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/remarkroll")){
-                sendMessage(chatId, "Для внесения замечания по рулону введите номер партии, номер рулона и текст замечания одним предложением через пробел, в формате: 23.023 1 текст замечания");
+                sendMessage(chatId, "Для внесения замечания по рулону введите номер партии, номер рулона и текст замечания, одним предложением через пробел, в формате: 23.023 1 текст замечания");
                 setState(chatId, "REMARK_ROLL");
             }
             if(state.equals("REMARK_ROLL")){
@@ -169,7 +169,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/updatemetricroll")){
-                sendMessage(chatId, "Для обновления метража руллона введите номер партии, номер руллона, сколько метров орезали от рулона одним предложением через пробел, в формате: 23.023 1 20");
+                sendMessage(chatId, "Для обновления метража руллона введите номер партии, номер руллона, сколько метров орезали от рулона, одним предложением через пробел, в формате: 23.023 1 20");
                 setState(chatId, "UPDATE_METRIC_ROLL");
             }
             if(state.equals("UPDATE_METRIC_ROLL")){
@@ -177,7 +177,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/finishroll")){
-                sendMessage(chatId, "Чтобы закончить рулон введите номер партии, номер рулона, фактический метраж одним предложеием через пробел, в формате: 23.023 1 55");
+                sendMessage(chatId, "Чтобы закончить рулон введите номер партии, номер рулона, фактический метраж, одним предложеием через пробел, в формате: 23.023 1 55");
                 setState(chatId, "FINISH_ROLL");
             }
             if(state.equals("FINISH_ROLL")){
@@ -185,14 +185,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/deleteroll")){
-                sendMessage(chatId, "Чтобы удалить рулон введите номер партии, номер рулона одним предложение через пробел, в формате: 23.023 1");
+                sendMessage(chatId, "Чтобы удалить рулон введите номер партии, номер рулона, одним предложение через пробел, в формате: 23.023 1");
                 setState(chatId, "DELETE_ROLL");
             }
             if(state.equals("DELETE_ROLL")){
                 deleteRoll(chatId, messageText);
                 deleteState();
             }
-            if(messageText.equals("/marksoldoutroll")){
+            if(messageText.equals("/soldoutroll")){
                 sendMessage(chatId, "Чтобы пометить рулон как проданный, введите номер партии, номер рулона, в формате: 23.023 1");
                 setState(chatId, "MARK_SOLD_OUT_ROLL");
             }
@@ -227,8 +227,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }
 
-            //--------Вывод готовых партий-------------
-            if(messageText.equals("/readyfabricdata")){
+            //--------Вывод партий-------------
+            if(messageText.equals("/datareadyfabric")){
                 SendMessage sendMessage = sendMessageFromFabricKeyboardNumberFabric(new SendMessage(String.valueOf(chatId), "Выберите по какой партии показать данные"));
                 executeMessage(sendMessage);
             }
@@ -236,8 +236,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                 writeFile.writeExcelFileReadyFabric(getOneReadyFabric(chatId, messageText), messageText);
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }if(messageText.equals("Все готовые партии")){
-                writeFile.writeExcelFileReadyFabric(getAllReadyFabric(chatId), messageText);
+                writeFile.writeExcelFileReadyFabric(getAllFabricByStatusFabric(chatId, StatusFabric.READY), messageText);
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
+            }
+            if(messageText.equals("/datasoldoutfabric")){
+                writeFile.writeExcelFileReadyFabric(getAllFabricByStatusFabric(chatId, StatusFabric.SOLD_OUT), "Проданные партии");
+                sendDocument(chatId, "C:/doc/" + "Проданные партии" + ".xlsx");
             }
 
            /* if (messageText.equals("/startworkshift")){
@@ -331,9 +335,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 fabric.setStatusFabric(StatusFabric.READY);
                 fabric.setDateManufacture(LocalDateTime.now());
                 fabricRepository.save(fabric);
-                sendMessage(chatId, "Партия с номером " + messageText + " завершена");
+                sendMessage(chatId, "Партия " + messageText + " завершена");
             }else{
-                sendMessage(chatId, "Партии с номером " + messageText + " нет в базе данных для завершения");
+                sendMessage(chatId, "Партии " + messageText + " не существует");
             }
         }else{
             sendMessage(chatId, "Не удается закончить партию, неверный формат ввода");
@@ -348,10 +352,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 rollRepository.deleteAllByFabricId(fabric.getBatchNumberId());
                 fabric.remove();
                 fabricRepository.deleteFabric(fabric.getBatchNumberId());
-                sendMessage(chatId, "Партия с номером " + messageText + " была удалена");
+                sendMessage(chatId, "Партия " + messageText + " была удалена");
             }
             else {
-                sendMessage(chatId, "Партии с номером " + messageText + " нет в базе данных для удаления");
+                sendMessage(chatId, "Партии " + messageText + " не существует");
             }
         }else {
             sendMessage(chatId, "Не удается удалить партию, неверный формат ввода");
@@ -387,7 +391,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Map<List<Object[]>, List<Roll>> getOneReadyFabric(long chatId, String messageText){
         String[] data = messageText.split("\s");
         Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
-        List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricArea(data[0]);
+        List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(data[0]);
         List<Roll> rollLists = rollRepository.findByFabricId(data[0]);
         if(infoFabrics.get(0) != null && !rollLists.isEmpty()){
             allDataFabric.put(infoFabrics, rollLists);
@@ -397,16 +401,25 @@ public class TelegramBot extends TelegramLongPollingBot {
         return allDataFabric;
     }
 
-    private Map<List<Object[]>, List<Roll>> getAllReadyFabric(long chatId) {
+    private Map<List<Object[]>, List<Roll>> getAllFabricByStatusFabric(long chatId, StatusFabric statusFabric) {
         Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
-        List<Fabric> fabrics = fabricRepository.findByAllStatusFabricReady(StatusFabric.READY.toString());
+        List<Fabric> fabrics = fabricRepository.findByAllStatusFabric(statusFabric.toString());
         for (Fabric fabric : fabrics) {
-            List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricArea(fabric.getBatchNumberId());
+            List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
             List<Roll> rollLists = rollRepository.findByFabricId(fabric.getBatchNumberId());
             if(infoFabrics.get(0) != null && !rollLists.isEmpty()){
                 allDataFabric.put(infoFabrics, rollLists);
             }else {
                 sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " находится в работе, по ней нет готовых рулонов");
+            }
+        }
+        if(statusFabric.equals(StatusFabric.SOLD_OUT)){
+            List<Roll> listSoldOutRollInReadyFabric = rollRepository.getAllSoldOutRollInReadyFabric(StatusRoll.SOLD_OUT.toString(), StatusFabric.READY.toString());
+            if(!listSoldOutRollInReadyFabric.isEmpty()){
+                for(Roll roll : listSoldOutRollInReadyFabric){
+                    List<Object[]> infoFabric = fabricRepository.allInfoFabricAndSumMetric(roll.getFabric().getBatchNumberId());
+                    allDataFabric.put(infoFabric, listSoldOutRollInReadyFabric);
+                }
             }
         }
         return allDataFabric;
@@ -419,7 +432,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage(chatId, "Остатков по ткани " + messageText + " на складе нет");
         }else {
             for(Fabric fabric : fabricList){
-                List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetricArea(fabric.getBatchNumberId());
+                List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
                 List<Roll> allRoll = rollRepository.findByFabricId(fabric.getBatchNumberId());
                 if(allInfo.get(0) != null && !allRoll.isEmpty()){
                     allDataFabric.put(allInfo, allRoll);
@@ -472,7 +485,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 roll.setRemark(null);
                 roll.setFabric(fabric);
                 rollRepository.save(roll);
-                sendMessage(chatId, "Руллон под номером " + data[1] + " добавлен к партии " + data[0]);
+                sendMessage(chatId, "Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
             }else {
                 sendMessage(chatId, "Не удается добавить рулон, вы ввели несуществующий номер партии или рулон под номером "+ data[1] + " уже сущесвует");
             }
@@ -492,9 +505,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 roll.setRemark(remark);
                 roll.setDateFulfilment(LocalDateTime.now());
                 rollRepository.save(roll);
-                sendMessage(chatId, "Замечания по рулону " + data[1] + " в партии " + data[0] + " внесены");
+                sendMessage(chatId, "Вы внесли замечание по рулону " + data[1] + " в партии " + data[0]);
             }else{
-                sendMessage(chatId, "Партии с номером " + data[0] + " нет в базе данных для внесения замечания по рулону");
+                sendMessage(chatId, "Партии с номером " + data[0] + " не существует");
             }
         }else {
             sendMessage(chatId, "Не удается внести замечания по рулону, неверный формат ввода");
@@ -509,9 +522,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(roll != null && fabricRepository.findById(data[0]).isPresent() && roll.getRollMetric() >= metricPiece){
                 roll.setRollMetric(roll.getRollMetric() - metricPiece);
                 rollRepository.save(roll);
-                sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " ,остаток равен " + roll.getRollMetric());
+                sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " ,остаток составляет " + roll.getRollMetric());
             }else {
-                sendMessage(chatId, "В базе данных нет такой партии или руллона, либо метраж руллона ");
+                sendMessage(chatId, "В базе данных нет такой партии или руллона, либо метраж руллона меньше, чем размер который хотите отрезать");
             }
         }else {
             sendMessage(chatId, "Не удается обновить метраж руллона, неверный формат ввода");
@@ -527,9 +540,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 roll.setRollMetric(Integer.parseInt(data[2]));
                 roll.setDateFulfilment(LocalDateTime.now());
                 rollRepository.save(roll);
-                sendMessage(chatId, "Рулон с номером " + data[1] + " для партии " + data[0] +  " завершен");
+                sendMessage(chatId, "Вы закончили " + data[1] + "й рулон, партии " + data[0]);
             }else{
-                sendMessage(chatId, "Рулона с номером " + data[1] + " нет в базе данных для завершения");
+                sendMessage(chatId, "Рулона " + data[1] + " не существует");
             }
         }else {
             sendMessage(chatId, "Не удается закончить рулон, неверный формат ввода");
@@ -545,9 +558,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 /*roll.remove();
                 rollRepository.deleteFromRollAndColleague(roll.getId());*/
                 rollRepository.deleteByFabricIdAndNumberRoll(data[0], Integer.parseInt(data[1]));
-                sendMessage(chatId, "Рулон под номером " + data[1] + " ,был удален у партии " + data[0]);
+                sendMessage(chatId, "Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
             }else{
-                sendMessage(chatId, "Рулона с номером " + data[1] + " нет в базе данных для завершения");
+                sendMessage(chatId, "Рулона " + data[1] + " не существует");
             }
         }else{
             sendMessage(chatId, "Не удается удалить рулон, неверный формат ввода");
@@ -576,7 +589,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private SendMessage sendMessageFromFabricKeyboardNumberFabric(SendMessage sendMessage){
-        List<Fabric> fabricList = fabricRepository.findByAllStatusFabricReady(StatusFabric.READY.toString());
+        List<Fabric> fabricList = fabricRepository.findByAllStatusFabric(StatusFabric.READY.toString());
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();

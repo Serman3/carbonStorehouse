@@ -25,12 +25,12 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
             JOIN carbon_storehouse.roll r ON f.id = r.fabric_id
             WHERE r.fabric_id = :fabricId
             """, nativeQuery = true)
-    List<Object[]> allInfoFabricAndSumMetricArea(@Param("fabricId") String fabricId);
+    List<Object[]> allInfoFabricAndSumMetric(@Param("fabricId") String fabricId);
 
     @Query(value = """
             SELECT * FROM `fabric` f WHERE f.status_fabric = :statusFabric
             """, nativeQuery = true)
-    List<Fabric> findByAllStatusFabricReady(@Param("statusFabric")String statusFabric);
+    List<Fabric> findByAllStatusFabric(@Param("statusFabric")String statusFabric);
 
     @Query(value = "SELECT * FROM `fabric` f WHERE f.name_fabric = :nameFabric", nativeQuery = true)
     List<Fabric> findByNameFabric(String nameFabric);

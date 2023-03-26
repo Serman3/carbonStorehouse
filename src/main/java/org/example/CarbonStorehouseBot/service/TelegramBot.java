@@ -44,11 +44,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final String YES_BUTTON = "YES_BUTTON";
     private static final String NO_BUTTON = "NO_BUTTON";
     private Map<Long, String> userStates = new HashMap<>();
+    private static final double widthRoll = 0.92;
+    private static final double[] widthsThread = {0.020, 0.022, 0.027};
     private static final String START_OUTPUT = EmojiParser.parseToUnicode(", добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
     private static final String REGEX_ADD_NEW_FABRIC = "[A|А][0-9]{2,3}\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[0-9]{3,4}$";
     private static final String REGEX_NUMBER_FABRIC_AND_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d$";
     private static final String REGEX_REMARK_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[А-Яа-яЁё]*.*";
-    private static final String REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{2,3}$";
+    private static final String REGEX_UPDATE_METRIC_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{1,3}\\.[0-9]{1,3}$";
+    private static final String REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{1,2}$";
+    private static final String REGEX_NUMBER_FABRIC_AND_ROLL_AND_STEP = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d\\s[0-9]{2,4}$";
     private static final String REGEX_READY_FABRIC_DATA = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\А[0-9]{2,3}$";
     private static final String REGEX_NUMBER_FABRIC = "^[0-9]{2,3}\\.[0-9]{2,3}$";
     private static final String HELP_TEXT = "Чтобы корректно добавлялись данные, нужно следовать этим дейсвтиям:" + "\n" +
@@ -169,7 +173,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/updatemetricroll")){
-                sendMessage(chatId, "Для обновления метража руллона введите номер партии, номер руллона, сколько метров орезали от рулона, одним предложением через пробел, в формате: 23.023 1 20");
+                sendMessage(chatId, "Для обновления метража рулона введите номер партии, номер рулона, сколько метров орезали от рулона, одним предложением через пробел, в формате: 23.023 1 20.2 (или 20)");
                 setState(chatId, "UPDATE_METRIC_ROLL");
             }
             if(state.equals("UPDATE_METRIC_ROLL")){
@@ -177,7 +181,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
             if(messageText.equals("/finishroll")){
-                sendMessage(chatId, "Чтобы закончить рулон введите номер партии, номер рулона, фактический метраж, одним предложеием через пробел, в формате: 23.023 1 55");
+                sendMessage(chatId, "Чтобы закончить рулон введите номер партии, номер рулона, количество шагов, одним предложеием через пробел, в формате: 23.023 1 2500");
                 setState(chatId, "FINISH_ROLL");
             }
             if(state.equals("FINISH_ROLL")){
@@ -418,7 +422,8 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(!listSoldOutRollInReadyFabric.isEmpty()){
                 for(Roll roll : listSoldOutRollInReadyFabric){
                     List<Object[]> infoFabric = fabricRepository.allInfoFabricAndSumMetric(roll.getFabric().getBatchNumberId());
-                    allDataFabric.put(infoFabric, listSoldOutRollInReadyFabric);
+                    List<Roll> list = List.of(roll);
+                    allDataFabric.put(infoFabric, list);
                 }
             }
         }
@@ -432,6 +437,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage(chatId, "Остатков по ткани " + messageText + " на складе нет");
         }else {
             for(Fabric fabric : fabricList){
+                if(fabric.getStatusFabric().equals(StatusFabric.SOLD_OUT)){
+                    continue;
+                }
                 List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
                 List<Roll> allRoll = rollRepository.findByFabricId(fabric.getBatchNumberId());
                 if(allInfo.get(0) != null && !allRoll.isEmpty()){
@@ -479,7 +487,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(fabric != null && rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[1]), data[0]).isEmpty()){
                 Roll roll = new Roll();
                 roll.setNumberRoll(Integer.parseInt(data[1]));
-                roll.setRollMetric(0);
+                roll.setRollMetric(0.0);
                 roll.setDateFulfilment(LocalDateTime.now());
                 roll.setStatusRoll(StatusRoll.AT_WORK);
                 roll.setRemark(null);
@@ -515,14 +523,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void updateMetricRoll(long chatId, String messageText){
-        if(messageText.matches(REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC)){
-            String[] data = messageText.split("\s");
-            int metricPiece = Integer.parseInt(data[2]);
+        String text = messageText.replaceAll(",", ".");
+        if(text.matches(REGEX_UPDATE_METRIC_ROLL) || text.matches(REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC)){
+            String[] data = text.split("\s");
+            double metricPiece = Double.parseDouble(data[2]);
             Roll roll = rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[1]), data[0]).orElse(null);
             if(roll != null && fabricRepository.findById(data[0]).isPresent() && roll.getRollMetric() >= metricPiece){
-                roll.setRollMetric(roll.getRollMetric() - metricPiece);
+                double metric = roll.getRollMetric() - metricPiece;
+                double roundedMetric = Math.round(metric * 10.0) / 10.0;
+                roll.setRollMetric(roundedMetric);
                 rollRepository.save(roll);
-                sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " ,остаток составляет " + roll.getRollMetric());
+                sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " , остаток составляет " + roll.getRollMetric());
             }else {
                 sendMessage(chatId, "В базе данных нет такой партии или руллона, либо метраж руллона меньше, чем размер который хотите отрезать");
             }
@@ -532,12 +543,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void finishRoll(long chatId, String messageText){
-        if (messageText.matches(REGEX_NUMBER_FABRIC_AND_ROLL_AND_METRIC)) {
+        if (messageText.matches(REGEX_NUMBER_FABRIC_AND_ROLL_AND_STEP)) {
             String[] data = messageText.split("\s");
             Roll roll = rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[1]), data[0]).orElse(null);
             if(roll != null){
+                String nameFabric = roll.getFabric().getNameFabric();
+                double rollMetric = convertStepInMetric(nameFabric, Integer.parseInt(data[2]));
                 roll.setStatusRoll(StatusRoll.READY);
-                roll.setRollMetric(Integer.parseInt(data[2]));
+                roll.setRollMetric(rollMetric);
                 roll.setDateFulfilment(LocalDateTime.now());
                 rollRepository.save(roll);
                 sendMessage(chatId, "Вы закончили " + data[1] + "й рулон, партии " + data[0]);
@@ -547,6 +560,27 @@ public class TelegramBot extends TelegramLongPollingBot {
         }else {
             sendMessage(chatId, "Не удается закончить рулон, неверный формат ввода");
         }
+    }
+
+    private double convertStepInMetric(String nameFabric, int steps){
+        double rollMetric = 0;
+        if(nameFabric.equals("А40")){
+           // rollMetric = steps * widthsThread[0] * widthRoll;
+            rollMetric = Math.round(steps * widthsThread[0] * widthRoll * 10.0) / 10.0;
+        } else if(nameFabric.equals("А60")){
+            //rollMetric = steps * widthsThread[2] * widthRoll;
+            rollMetric = Math.round(steps * widthsThread[2] * widthRoll * 10.0) / 10.0;
+        } else if(nameFabric.equals("А80")){
+            //rollMetric = steps * widthsThread[0] * widthRoll;
+            rollMetric = Math.round(steps * widthsThread[0] * widthRoll * 10.0) / 10.0;
+        } else if(nameFabric.equals("А120")){
+            //rollMetric = steps * widthsThread[2] * widthRoll;
+            rollMetric = Math.round(steps * widthsThread[2] * widthRoll * 10.0) / 10.0;
+        } else if(nameFabric.equals("А160")){
+            //rollMetric = steps * widthsThread[1] * widthRoll;
+            rollMetric = Math.round(steps * widthsThread[1] * widthRoll * 10.0) / 10.0;
+        }
+        return rollMetric;
     }
 
     @Transactional
@@ -611,12 +645,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         keyboardRows.add(row);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
+        replyKeyboardMarkup.setResizeKeyboard(true);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         return sendMessage;
     }
 
     public SendMessage sendMessageFromFabricKeyboardNameFabric(SendMessage sendMessage){
-        Set<String> setName = fabricRepository.findAllNameFabric();
+        Set<String> setName = fabricRepository.findAllNameFabricAndStatusSoldOut(StatusFabric.SOLD_OUT.toString());
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
@@ -637,6 +672,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         keyboardRows.add(row);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
+        replyKeyboardMarkup.setResizeKeyboard(true);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         return sendMessage;
     }

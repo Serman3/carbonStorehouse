@@ -40,6 +40,6 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     @Query(value = "UPDATE fabric f SET f.status_fabric = :statusFabric WHERE f.id = :id", nativeQuery = true)
     void updateStatusFabric(@Param("statusFabric") String statusFabric, @Param("id") String id);
 
-    @Query(value = "SELECT name_fabric FROM fabric", nativeQuery = true)
-    Set<String> findAllNameFabric();
+    @Query(value = "SELECT name_fabric FROM fabric WHERE NOT status_fabric = :statusFabric", nativeQuery = true)
+    Set<String> findAllNameFabricAndStatusSoldOut(@Param("statusFabric") String statusFabric);
 }

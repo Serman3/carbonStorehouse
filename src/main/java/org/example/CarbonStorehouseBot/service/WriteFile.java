@@ -19,7 +19,7 @@ public class WriteFile {
     @Autowired
     private FabricRepository fabricRepository;
     private final String[] headersFabric = {"Номер партии", "Название партии", "Метраж партии", "Дата изготовления", "Фактический метраж партии", "Статус партии"};
-    private final String[] headersRoll = {"Номер руллона", "Метраж руллона", "Заметка", "Дата изготовления", "Статус руллона", "Номер партии"};
+    private final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления", "Статус рулона", "Номер партии"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
         if(messageText.equals("Проданные партии")){
@@ -41,7 +41,7 @@ public class WriteFile {
             sheet.autoSizeColumn(i);
         }
 
-        XSSFSheet sheet2 = workbook.createSheet("Руллоны");
+        XSSFSheet sheet2 = workbook.createSheet("Рулоны");
         XSSFRow headerRollRow = sheet2.createRow(0);
         for (int i = 0; i < headersRoll.length; i++) {
             XSSFCell cell = headerRollRow.createCell(i);
@@ -137,6 +137,8 @@ public class WriteFile {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        headersFabric[3] = "Дата изготовления";
+        headersRoll[3] = "Дата изготовления";
     }
 
 }

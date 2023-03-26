@@ -21,7 +21,7 @@ public class Roll {
     private int numberRoll;
 
     @Column(name = "roll_metric", nullable = false)
-    private int rollMetric;
+    private Double rollMetric;
 
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;

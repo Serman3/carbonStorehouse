@@ -1,5 +1,6 @@
 package org.example.CarbonStorehouseBot.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.xssf.usermodel.*;
 import org.example.CarbonStorehouseBot.model.Roll;
@@ -11,6 +12,7 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class WriteFile {
 
@@ -135,7 +137,7 @@ public class WriteFile {
             workbook.write(outputStream);
             workbook.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("ERROR_TEXT " + e.getMessage());
         }
         headersFabric[3] = "Дата изготовления";
         headersRoll[3] = "Дата изготовления";

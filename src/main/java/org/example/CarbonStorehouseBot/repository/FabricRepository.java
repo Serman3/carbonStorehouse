@@ -7,9 +7,9 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-
 
 @Repository
 public interface FabricRepository extends CrudRepository<Fabric, String> {
@@ -28,6 +28,15 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     List<Object[]> allInfoFabricAndSumMetric(@Param("fabricId") String fabricId);
 
     @Query(value = """
+           SELECT *
+           FROM fabric f
+           JOIN roll r ON f.id = r.fabric_id
+           WHERE f.status_fabric = :statusFabric
+           AND r.status_roll = :statusRoll
+            """, nativeQuery = true)
+    Set<Fabric>findByStatusFabricReadyAndStatusRollSoldOut(@Param("statusFabric") String statusFabric, @Param("statusRoll") String statusRoll);
+
+    @Query(value = """
             SELECT * FROM `fabric` f WHERE f.status_fabric = :statusFabric
             """, nativeQuery = true)
     List<Fabric> findByAllStatusFabric(@Param("statusFabric")String statusFabric);
@@ -37,8 +46,12 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
 
     @Transactional
     @Modifying
-    @Query(value = "UPDATE fabric f SET f.status_fabric = :statusFabric WHERE f.id = :id", nativeQuery = true)
-    void updateStatusFabric(@Param("statusFabric") String statusFabric, @Param("id") String id);
+    @Query(value = """
+                    UPDATE fabric
+                    SET status_fabric = :statusFabric, date_manufacture = :date
+                    WHERE id = :id
+                    """, nativeQuery = true)
+    void updateStatusFabricSoldOut(@Param("statusFabric") String statusFabric, @Param("id") String id, @Param("date") LocalDateTime date);
 
     @Query(value = "SELECT name_fabric FROM fabric WHERE NOT status_fabric = :statusFabric", nativeQuery = true)
     Set<String> findAllNameFabricAndStatusSoldOut(@Param("statusFabric") String statusFabric);

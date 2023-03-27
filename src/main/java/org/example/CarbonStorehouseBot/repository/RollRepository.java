@@ -38,14 +38,21 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
             """, nativeQuery = true)
    List<Roll> getAllSoldOutRollInReadyFabric(@Param("statusRoll") String statusRoll, @Param("statusFabric") String statusFabric);
 
+   @Query(value = """
+            SELECT *
+            FROM roll
+            WHERE fabric_id = :fabricId AND status_roll = :statusRoll
+            """, nativeQuery = true)
+   List<Roll>findByFabricIdAndStatusRollSoldOut(@Param("fabricId") String fabricId, @Param("statusRoll") String statusRoll);
+
    @Transactional
    @Modifying
    @Query(value = """
            UPDATE roll
            SET status_roll = :statusRoll, date_fulfilment = :date
-           WHERE fabric_id = :fabricId
+           WHERE fabric_id = :fabricId AND NOT status_roll = :statusRoll
            """, nativeQuery = true)
-   void updateAllStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("date") LocalDateTime date);
+   void updateAllStatusRollSoldOut(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("date") LocalDateTime date);
 
    @Transactional
    @Modifying

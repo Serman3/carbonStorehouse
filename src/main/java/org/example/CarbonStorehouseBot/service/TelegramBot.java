@@ -156,7 +156,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 deleteState();
             }
 
-            //--------Работа с руллоном-------------
+            //--------Работа с рулоном-------------
             if(messageText.equals("/addnewroll")){
                 sendMessage(chatId, "Для добавления рулона введите номер парти, номер рулона, одним предложением через пробел, в формате: 23.023 1");
                 setState(chatId, "ADD_NEW_ROLL");

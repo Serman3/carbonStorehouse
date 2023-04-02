@@ -1,4 +1,4 @@
-#CarbonStorehouseBot
+# CarbonStorehouseBot
 ## Описание:
 Данный Telegram bot представляет из себя
 **Spring-приложение**, работающее с

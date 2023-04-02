@@ -3,7 +3,7 @@ package org.example.CarbonStorehouseBot.model;
 import lombok.Getter;
 import lombok.Setter;
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.Objects;
 
 @Getter
@@ -27,7 +27,7 @@ public class Roll {
     private String remark;
 
     @Column(name = "date_fulfilment", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime dateFulfilment;
+    private LocalDate dateFulfilment;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_roll", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK', 'SOLD_OUT')", nullable = false)

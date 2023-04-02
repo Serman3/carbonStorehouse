@@ -1,12 +1,12 @@
 package org.example.CarbonStorehouseBot.service;
 
 import com.vdurmont.emoji.EmojiParser;
-import lombok.extern.slf4j.Slf4j;
 import org.example.CarbonStorehouseBot.config.BotConfig;
 import org.example.CarbonStorehouseBot.model.*;
 import org.example.CarbonStorehouseBot.repository.ColleagueRepository;
 import org.example.CarbonStorehouseBot.repository.FabricRepository;
 import org.example.CarbonStorehouseBot.repository.RollRepository;
+import org.example.CarbonStorehouseBot.sorted.MyComparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +26,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
-@Slf4j
+
+//@Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
@@ -47,6 +48,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Map<Long, String> userStates = new HashMap<>();
     private static final double widthRoll = 0.92;
     private static final double[] widthsThread = {0.020, 0.022, 0.027};
+    private static final String[] periodDate = {"Текущий месяц", "За 2 месяца", "За полгода", "Текущий год"};
     private static final String START_OUTPUT = EmojiParser.parseToUnicode(", добрый день! " + "\n" + "Я бот, который поможет вам c работой по складскому учету" + " :blush:" + "\n" + "Выберети в меню действие."); // EmojiParser and :blush: это смайлик https://emojipedia.org/
     private static final String REGEX_ADD_NEW_FABRIC = "[A|А][0-9]{2,3}\\s[0-9]{2,3}\\.[0-9]{2,3}\\s[0-9]{3,4}$";
     private static final String REGEX_NUMBER_FABRIC_AND_ROLL = "^[0-9]{2,3}\\.[0-9]{2,3}\\s\\d$";
@@ -94,7 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         }catch (TelegramApiException e){
             e.printStackTrace();
-            log.error("Error setting bot command list " + e.getMessage());
+            //   log.error("Error setting bot command list " + e.getMessage());
         }
     }
 
@@ -245,8 +247,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }
             if(messageText.equals("/datasoldoutfabric")){
-                writeFile.writeExcelFileReadyFabric(getAllFabricByStatusFabric(chatId, StatusFabric.SOLD_OUT), "Проданные партии");
-                sendDocument(chatId, "C:/doc/" + "Проданные партии" + ".xlsx");
+                SendMessage sendMessage = sendMessageFromFabricKeyboardPeriodDate(new SendMessage(String.valueOf(chatId), "Выберите за какой период показать проданные партии и рулоны"));
+                executeMessage(sendMessage);
+                setState(chatId, "DATA_SOLD_OUT_FABRIC");
+            }
+            if(state.equals("DATA_SOLD_OUT_FABRIC")){
+                Map<List<Object[]>, List<Roll>> fabricAndRollSoldOut = getAllFabricAndRollSoldOut(chatId, messageText);
+                if(!fabricAndRollSoldOut.isEmpty()){
+                    writeFile.writeExcelFileReadyFabric(fabricAndRollSoldOut, messageText);
+                    sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
+                }else {
+                    sendMessage(chatId, "На выбранный период времени нет проданных партий");
+                }
+                deleteState();
             }
 
            /* if (messageText.equals("/startworkshift")){
@@ -301,10 +314,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             colleague.setFirstName(chat.getFirstName());
             colleague.setLastName(chat.getLastName());
             colleague.setUserName(chat.getUserName());
-            colleague.setDateRegister(LocalDateTime.now());
+            colleague.setDateRegister(LocalDate.now());
             colleagueRepository.save(colleague);
             System.out.println("Colleague save " + colleague);
-            log.info("Colleague save " + colleague);
+            //    log.info("Colleague save " + colleague);
         }
     }
 
@@ -317,14 +330,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Colleague colleague = colleagueRepository.findById(chatId).get();
                 Fabric fabric = new Fabric();
                 fabric.setBatchNumberId(data[1]);
-                fabric.setDateManufacture(LocalDateTime.now());
+                fabric.setDateManufacture(LocalDate.now());
                 fabric.setMetricAreaBatch(Integer.parseInt(data[2]));
                 fabric.setNameFabric(getReplacedNameFabric(data[0]));
                 fabric.addColleague(colleague);
                 fabric.setStatusFabric(StatusFabric.AT_WORK);
                 fabricRepository.save(fabric);
                 sendMessage(chatId, "Вы начали делать новую партию " + messageText);
-                log.info(colleague.getFirstName() + " начал делать новую партию " + messageText);
+                //     log.info(colleague.getFirstName() + " начал делать новую партию " + messageText);
             }else{
                 sendMessage(chatId, "Такая партия уже сущесвует");
             }
@@ -338,10 +351,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             Fabric fabric = fabricRepository.findById(messageText).orElse(null);
             if(fabric != null){
                 fabric.setStatusFabric(StatusFabric.READY);
-                fabric.setDateManufacture(LocalDateTime.now());
+                fabric.setDateManufacture(LocalDate.now());
                 fabricRepository.save(fabric);
                 sendMessage(chatId, "Партия " + messageText + " завершена");
-                log.info("Партия " + messageText + " завершена");
+                //   log.info("Партия " + messageText + " завершена");
             }else{
                 sendMessage(chatId, "Партии " + messageText + " не существует");
             }
@@ -359,7 +372,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 fabric.remove();
                 fabricRepository.deleteFabric(fabric.getBatchNumberId());
                 sendMessage(chatId, "Партия " + messageText + " была удалена");
-                log.info("Партия " + messageText + " была удалена");
+                //   log.info("Партия " + messageText + " была удалена");
             }
             else {
                 sendMessage(chatId, "Партии " + messageText + " не существует");
@@ -374,10 +387,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(messageText.matches(REGEX_NUMBER_FABRIC)){
             fabric = fabricRepository.findById(messageText).orElse(null);
             if(fabric != null){
-                fabricRepository.updateStatusFabricSoldOut(StatusFabric.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDateTime.now());
-                rollRepository.updateAllStatusRollSoldOut(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDateTime.now());
+                fabricRepository.updateStatusFabricSoldOut(StatusFabric.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
+                rollRepository.updateAllStatusRollSoldOut(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
                 sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " была продана");
-                log.info("Партия " + fabric.getBatchNumberId() + " была продана");
+                //   log.info("Партия " + fabric.getBatchNumberId() + " была продана");
             }else {
                 sendMessage(chatId, "Такой партии не сущесвует");
             }
@@ -386,9 +399,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             int numberRoll = Integer.parseInt(data[1]);
             fabric = fabricRepository.findById(data[0]).orElse(null);
             if(fabric != null && rollRepository.findByNumberRollAndFabricId(numberRoll, data[0]).isPresent()){
-                rollRepository.updateByStatusRoll(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), numberRoll, LocalDateTime.now());
+                rollRepository.updateByStatusRoll(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), numberRoll, LocalDate.now());
                 sendMessage(chatId, "В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
-                log.info("В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
+                //    log.info("В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
             }else {
                 sendMessage(chatId, "Не существует такой партии или рулона");
             }
@@ -422,18 +435,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " находится в работе, по ней нет готовых рулонов");
             }
         }
-        if(statusFabric.equals(StatusFabric.SOLD_OUT)){
-            Set<Fabric> fabricSet = fabricRepository.findByStatusFabricReadyAndStatusRollSoldOut(StatusFabric.READY.toString(), StatusRoll.SOLD_OUT.toString());
-            if(!fabricSet.isEmpty()){
-                for (Fabric fabric : fabricSet) {
-                    List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
-                    List<Roll> rollLists = rollRepository. findByFabricIdAndStatusRollSoldOut(fabric.getBatchNumberId(), StatusRoll.SOLD_OUT.toString());
-                    if(infoFabrics.get(0) != null && !rollLists.isEmpty()){
-                        allDataFabric.put(infoFabrics, rollLists);
-                    }
-                }
-            }
-        }
         return allDataFabric;
     }
 
@@ -457,6 +458,39 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
         return allDataFabric;
+    }
+
+    private Map<List<Object[]>, List<Roll>> getAllFabricAndRollSoldOut(long chatId, String messageText){
+        Set<Fabric> fabricSet = null;
+        //String statusSoldOut = StatusFabric.SOLD_OUT.toString();
+        Map<List<Object[]>, List<Roll>> sortedMap = new TreeMap<>(new MyComparator());
+        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        if(messageText.equals(periodDate[0])){
+            fabricSet = fabricRepository.findAllByStatusSoldOutCurrentMonth();
+            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+        }else if(messageText.equals(periodDate[1])){
+            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(2);
+            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+        }else if(messageText.equals(periodDate[2])){
+            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(6);
+            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+        }else if(messageText.equals(periodDate[3])){
+            fabricSet = fabricRepository.findByAllByStatusSoldOutInYear();
+            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+        }
+        if(fabricSet != null && !fabricSet.isEmpty()){
+            for (Fabric fabric : fabricSet) {
+                List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
+                List<Roll> rollLists = rollRepository.findByFabricIdAndStatusRollSoldOut(fabric.getBatchNumberId(), StatusRoll.SOLD_OUT.toString());
+                if (infoFabrics.get(0) != null && !rollLists.isEmpty()) {
+                    sortedMap.put(infoFabrics, rollLists);
+                    //allDataFabric.put(infoFabrics, rollLists);
+                } else {
+                    sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " находится в работе, по ней нет готовых рулонов");
+                }
+            }
+        }
+        return sortedMap;
     }
 /*
     private void startWorkShift(long chatId, String messageText){
@@ -494,13 +528,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Roll roll = new Roll();
                 roll.setNumberRoll(Integer.parseInt(data[1]));
                 roll.setRollMetric(0.0);
-                roll.setDateFulfilment(LocalDateTime.now());
+                roll.setDateFulfilment(LocalDate.now());
                 roll.setStatusRoll(StatusRoll.AT_WORK);
                 roll.setRemark(null);
                 roll.setFabric(fabric);
                 rollRepository.save(roll);
                 sendMessage(chatId, "Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
-                log.info("Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
+                //    log.info("Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
             }else {
                 sendMessage(chatId, "Не удается добавить рулон, вы ввели несуществующий номер партии или рулон под номером "+ data[1] + " уже сущесвует");
             }
@@ -518,10 +552,10 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(fabric != null){
                 Roll roll = rollRepository.findByNumberRollAndFabricId(Integer.parseInt(data[1]), data[0]).get();
                 roll.setRemark(remark);
-                roll.setDateFulfilment(LocalDateTime.now());
+                roll.setDateFulfilment(LocalDate.now());
                 rollRepository.save(roll);
                 sendMessage(chatId, "Вы внесли замечание по рулону " + data[1] + " в партии " + data[0]);
-                log.info("Замечание по рулону " + data[1] + " " + remark + " в партии " + data[0]);
+                //   log.info("Замечание по рулону " + data[1] + " " + remark + " в партии " + data[0]);
             }else{
                 sendMessage(chatId, "Партии с номером " + data[0] + " не существует");
             }
@@ -542,7 +576,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 roll.setRollMetric(roundedMetric);
                 rollRepository.save(roll);
                 sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " , остаток составляет " + roll.getRollMetric());
-                log.info("Партия "+ roll.getFabric().getBatchNumberId() + ", вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + ", остаток составляет " + roll.getRollMetric() + " метров");
+                //    log.info("Партия "+ roll.getFabric().getBatchNumberId() + ", вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + ", остаток составляет " + roll.getRollMetric() + " метров");
             }else {
                 sendMessage(chatId, "В базе данных нет такой партии или руллона, либо метраж руллона меньше, чем размер который хотите отрезать");
             }
@@ -560,10 +594,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 double rollMetric = convertStepInMetric(nameFabric, Integer.parseInt(data[2]));
                 roll.setStatusRoll(StatusRoll.READY);
                 roll.setRollMetric(rollMetric);
-                roll.setDateFulfilment(LocalDateTime.now());
+                roll.setDateFulfilment(LocalDate.now());
                 rollRepository.save(roll);
                 sendMessage(chatId, "Вы закончили " + data[1] + "й рулон, партии " + data[0]);
-                log.info("Вы закончили " + data[1] + "й рулон, партии " + data[0]);
+                //     log.info("Вы закончили " + data[1] + "й рулон, партии " + data[0]);
             }else{
                 sendMessage(chatId, "Рулона " + data[1] + " не существует");
             }
@@ -598,7 +632,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 rollRepository.deleteFromRollAndColleague(roll.getId());*/
                 rollRepository.deleteByFabricIdAndNumberRoll(data[0], Integer.parseInt(data[1]));
                 sendMessage(chatId, "Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
-                log.info("Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
+                //     log.info("Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
             }else{
                 sendMessage(chatId, "Рулона " + data[1] + " не существует");
             }
@@ -624,7 +658,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(sendDocument);
         } catch (TelegramApiException e) {
-            log.error("ERROR_TEXT " + e.getMessage());
+            //    log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 
@@ -683,6 +717,21 @@ public class TelegramBot extends TelegramLongPollingBot {
         return sendMessage;
     }
 
+    public SendMessage sendMessageFromFabricKeyboardPeriodDate(SendMessage sendMessage){
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        for(String s : periodDate){
+            row.add(s);
+        }
+        keyboardRows.add(row);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(true);
+        sendMessage.setReplyMarkup(replyKeyboardMarkup);
+        return sendMessage;
+    }
+
 
     //--------------EXECUTE_MESSAGE-----------------------EXECUTE_MESSAGE------------
     private void executeEditMessageText(String text, long chatId, long messageId){
@@ -693,7 +742,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("ERROR_TEXT " + e.getMessage());
+            //     log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 
@@ -701,7 +750,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error("ERROR_TEXT " + e.getMessage());
+            //    log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 

@@ -5,7 +5,7 @@ import lombok.Setter;
 import lombok.ToString;
 import javax.persistence.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -31,7 +31,7 @@ public class Colleague implements Serializable {
     private String userName;
 
     @Column(name = "date_register", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime dateRegister;
+    private LocalDate dateRegister;
 
     @ManyToMany(mappedBy = "colleagues", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private Set<Fabric> fabrics = new HashSet<>();

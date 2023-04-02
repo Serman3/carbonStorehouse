@@ -7,7 +7,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,7 +52,7 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
            SET status_roll = :statusRoll, date_fulfilment = :date
            WHERE fabric_id = :fabricId AND NOT status_roll = :statusRoll
            """, nativeQuery = true)
-   void updateAllStatusRollSoldOut(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("date") LocalDateTime date);
+   void updateAllStatusRollSoldOut(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("date") LocalDate date);
 
    @Transactional
    @Modifying
@@ -61,7 +61,7 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
             SET status_roll = :statusRoll, date_fulfilment = :date
             WHERE fabric_id = :fabricId AND number_roll = :numberRoll
            """, nativeQuery = true)
-   void updateByStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("numberRoll") int numberRoll, @Param("date") LocalDateTime date);
+   void updateByStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("numberRoll") int numberRoll, @Param("date") LocalDate date);
 
  /*  @Transactional
    @Modifying

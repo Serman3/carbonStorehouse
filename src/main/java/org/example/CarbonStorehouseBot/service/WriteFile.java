@@ -12,7 +12,7 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
+//@Slf4j
 @Component
 public class WriteFile {
 
@@ -24,7 +24,7 @@ public class WriteFile {
     private final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления", "Статус рулона", "Номер партии"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
-        if(messageText.equals("Проданные партии")){
+        if((messageText.equals("Текущий месяц") || messageText.equals("За 2 месяца")) || (messageText.equals("За полгода") || messageText.equals("Текущий год"))){
             headersFabric[3] = "Дата продажи";
             headersRoll[3] = "Дата продажи";
         }
@@ -137,7 +137,7 @@ public class WriteFile {
             workbook.write(outputStream);
             workbook.close();
         } catch (Exception e) {
-            log.error("ERROR_TEXT " + e.getMessage());
+            //    log.error("ERROR_TEXT " + e.getMessage());
         }
         headersFabric[3] = "Дата изготовления";
         headersRoll[3] = "Дата изготовления";

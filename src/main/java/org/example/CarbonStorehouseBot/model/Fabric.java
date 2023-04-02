@@ -7,7 +7,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import javax.persistence.*;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 @Getter
@@ -31,7 +31,7 @@ public class Fabric implements Serializable {
     private int metricAreaBatch;
 
     @Column(name = "date_manufacture", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime dateManufacture;
+    private LocalDate dateManufacture;
 
     @OneToMany(mappedBy = "fabric", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @BatchSize(size = 2)
@@ -62,5 +62,4 @@ public class Fabric implements Serializable {
             removeColleague(colleague);
         }
     }
-
 }

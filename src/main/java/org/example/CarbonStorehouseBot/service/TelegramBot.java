@@ -6,7 +6,6 @@ import org.example.CarbonStorehouseBot.model.*;
 import org.example.CarbonStorehouseBot.repository.ColleagueRepository;
 import org.example.CarbonStorehouseBot.repository.FabricRepository;
 import org.example.CarbonStorehouseBot.repository.RollRepository;
-import org.example.CarbonStorehouseBot.sorted.MyComparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,7 +89,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/soldoutroll", "Пометить рулон, как проданный"));
         listOfCommands.add(new BotCommand("/remainder", "Остаток по ткани"));
         listOfCommands.add(new BotCommand("/datareadyfabric", "Посмотреть готовые партии"));
-        listOfCommands.add(new BotCommand("/datasoldoutfabric", "Посмотреть проданные партии и рулоны"));
+        listOfCommands.add(new BotCommand("/datasoldoutfabric", "Посмотреть проданные партии"));
+        listOfCommands.add(new BotCommand("/datasoldoutrollinreadyfabrics", "Посмотреть проданные рулоны в готовых партиях"));
         listOfCommands.add(new BotCommand("/help", "Информация по боту"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -246,15 +246,34 @@ public class TelegramBot extends TelegramLongPollingBot {
                 writeFile.writeExcelFileReadyFabric(getAllFabricByStatusFabric(chatId, StatusFabric.READY), messageText);
                 sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
             }
+
+            //--------Проданные партии-------------
             if(messageText.equals("/datasoldoutfabric")){
-                SendMessage sendMessage = sendMessageFromFabricKeyboardPeriodDate(new SendMessage(String.valueOf(chatId), "Выберите за какой период показать проданные партии и рулоны"));
+                SendMessage sendMessage = sendMessageFromFabricKeyboardPeriodDate(new SendMessage(String.valueOf(chatId), "Выберите за какой период показать проданные партии"));
                 executeMessage(sendMessage);
                 setState(chatId, "DATA_SOLD_OUT_FABRIC");
             }
             if(state.equals("DATA_SOLD_OUT_FABRIC")){
-                Map<List<Object[]>, List<Roll>> fabricAndRollSoldOut = getAllFabricAndRollSoldOut(chatId, messageText);
+                Map<List<Object[]>, List<Roll>> fabricAndRollSoldOut = getAllFabricSoldOut(chatId, messageText);
                 if(!fabricAndRollSoldOut.isEmpty()){
                     writeFile.writeExcelFileReadyFabric(fabricAndRollSoldOut, messageText);
+                    sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
+                }else {
+                    sendMessage(chatId, "На выбранный период времени нет проданных партий");
+                }
+                deleteState();
+            }
+
+            //--------Проданные рулоны в готовых партиях-------------
+            if(messageText.equals("/datasoldoutrollinreadyfabrics")){
+                SendMessage sendMessage = sendMessageFromFabricKeyboardPeriodDate(new SendMessage(String.valueOf(chatId), "Выберите за какой период показать проданные рулоны"));
+                executeMessage(sendMessage);
+                setState(chatId, "DATA_SOLD_OUT_ROLL_IN_READY_FABRICS");
+            }
+            if(state.equals("DATA_SOLD_OUT_ROLL_IN_READY_FABRICS")){
+                Map<List<Object[]>, List<Roll>> fabricReadyAndRollSoldOut = getAllSoldOutRollInReadyFabrics(chatId, messageText);
+                if(!fabricReadyAndRollSoldOut.isEmpty()){
+                    writeFile.writeExcelFileReadyFabric(fabricReadyAndRollSoldOut, messageText);
                     sendDocument(chatId, "C:/doc/" + messageText + ".xlsx");
                 }else {
                     sendMessage(chatId, "На выбранный период времени нет проданных партий");
@@ -392,7 +411,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " была продана");
                 //   log.info("Партия " + fabric.getBatchNumberId() + " была продана");
             }else {
-                sendMessage(chatId, "Такой партии не сущесвует");
+                sendMessage(chatId, "Такой партии не существует");
             }
         }else if(messageText.matches(REGEX_NUMBER_FABRIC_AND_ROLL)){
             String[] data = messageText.split("\s");
@@ -401,6 +420,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(fabric != null && rollRepository.findByNumberRollAndFabricId(numberRoll, data[0]).isPresent()){
                 rollRepository.updateByStatusRoll(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), numberRoll, LocalDate.now());
                 sendMessage(chatId, "В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
+                if(fabricRepository.sumReadyRollNull(fabric.getBatchNumberId()) == 0){
+                    fabricRepository.updateStatusFabricSoldOut(StatusFabric.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
+                }
                 //    log.info("В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
             }else {
                 sendMessage(chatId, "Не существует такой партии или рулона");
@@ -412,8 +434,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private Map<List<Object[]>, List<Roll>> getOneReadyFabric(long chatId, String messageText){
         String[] data = messageText.split("\s");
-        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
-        List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(data[0]);
+        Map<List<Object[]>, List<Roll>> allDataFabric = new LinkedHashMap<>();
+        List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricIfStatusRollReady(data[0]);
         List<Roll> rollLists = rollRepository.findByFabricId(data[0]);
         if(infoFabrics.get(0) != null && !rollLists.isEmpty()){
             allDataFabric.put(infoFabrics, rollLists);
@@ -424,10 +446,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private Map<List<Object[]>, List<Roll>> getAllFabricByStatusFabric(long chatId, StatusFabric statusFabric) {
-        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        Map<List<Object[]>, List<Roll>> allDataFabric = new LinkedHashMap<>();
         List<Fabric> fabrics = fabricRepository.findByAllStatusFabric(statusFabric.toString());
         for (Fabric fabric : fabrics) {
-            List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
+            List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricIfStatusRollReady(fabric.getBatchNumberId());
             List<Roll> rollLists = rollRepository.findByFabricId(fabric.getBatchNumberId());
             if(infoFabrics.get(0) != null && !rollLists.isEmpty()){
                 allDataFabric.put(infoFabrics, rollLists);
@@ -439,7 +461,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private Map<List<Object[]>, List<Roll>> getRemainderFabrics(long chatId, String messageText){
-        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        Map<List<Object[]>, List<Roll>> allDataFabric = new LinkedHashMap<>();
         List<Fabric> fabricList = fabricRepository.findByNameFabric(getReplacedNameFabric(messageText));
         if(fabricList.isEmpty()){
             sendMessage(chatId, "Остатков по ткани " + messageText + " на складе нет");
@@ -448,7 +470,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 if(fabric.getStatusFabric().equals(StatusFabric.SOLD_OUT)){
                     continue;
                 }
-                List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
+                List<Object[]> allInfo = fabricRepository.allInfoFabricAndSumMetricIfStatusRollReady(fabric.getBatchNumberId());
                 List<Roll> allRoll = rollRepository.findByFabricId(fabric.getBatchNumberId());
                 if(allInfo.get(0) != null && !allRoll.isEmpty()){
                     allDataFabric.put(allInfo, allRoll);
@@ -460,37 +482,57 @@ public class TelegramBot extends TelegramLongPollingBot {
         return allDataFabric;
     }
 
-    private Map<List<Object[]>, List<Roll>> getAllFabricAndRollSoldOut(long chatId, String messageText){
+    private Map<List<Object[]>, List<Roll>> getAllFabricSoldOut(long chatId, String messageText){
         Set<Fabric> fabricSet = null;
-        //String statusSoldOut = StatusFabric.SOLD_OUT.toString();
-        Map<List<Object[]>, List<Roll>> sortedMap = new TreeMap<>(new MyComparator());
-        Map<List<Object[]>, List<Roll>> allDataFabric = new HashMap<>();
+        String statusFabricSoldOut = StatusFabric.SOLD_OUT.toString();
+        Map<List<Object[]>, List<Roll>> allDataFabric = new LinkedHashMap<>();
         if(messageText.equals(periodDate[0])){
-            fabricSet = fabricRepository.findAllByStatusSoldOutCurrentMonth();
-            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+            fabricSet = fabricRepository.findAllByStatusSoldOutCurrentMonth(statusFabricSoldOut);
         }else if(messageText.equals(periodDate[1])){
-            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(2);
-            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(statusFabricSoldOut, 2);
         }else if(messageText.equals(periodDate[2])){
-            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(6);
-            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+            fabricSet = fabricRepository.findByAllByStatusSoldOutLastCountMonths(statusFabricSoldOut,6);
         }else if(messageText.equals(periodDate[3])){
-            fabricSet = fabricRepository.findByAllByStatusSoldOutInYear();
-            //fabricList.sort(Comparator.comparing(Fabric::getDateManufacture));
+            fabricSet = fabricRepository.findByAllByStatusSoldOutInYear(statusFabricSoldOut);
         }
         if(fabricSet != null && !fabricSet.isEmpty()){
             for (Fabric fabric : fabricSet) {
-                List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetric(fabric.getBatchNumberId());
+                List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricSoldOutFabric(fabric.getBatchNumberId());
                 List<Roll> rollLists = rollRepository.findByFabricIdAndStatusRollSoldOut(fabric.getBatchNumberId(), StatusRoll.SOLD_OUT.toString());
                 if (infoFabrics.get(0) != null && !rollLists.isEmpty()) {
-                    sortedMap.put(infoFabrics, rollLists);
-                    //allDataFabric.put(infoFabrics, rollLists);
+                    allDataFabric.put(infoFabrics, rollLists);
                 } else {
                     sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " находится в работе, по ней нет готовых рулонов");
                 }
             }
         }
-        return sortedMap;
+        return allDataFabric;
+    }
+
+    private Map<List<Object[]>, List<Roll>> getAllSoldOutRollInReadyFabrics(long chatId, String messageText){
+        Set<Fabric> fabricSet = null;
+        Map<List<Object[]>, List<Roll>> allDataFabric = new LinkedHashMap<>();
+        if(messageText.equals(periodDate[0])){
+            fabricSet = fabricRepository.findAllByStatusSoldOutRollInReadyFabricsCurrentMonth();
+        }else if(messageText.equals(periodDate[1])){
+            fabricSet = fabricRepository.findAllByStatusSoldOutRollInReadyFabricsLastCountMonths(2);
+        }else if(messageText.equals(periodDate[2])){
+            fabricSet = fabricRepository.findAllByStatusSoldOutRollInReadyFabricsLastCountMonths(6);
+        }else if(messageText.equals(periodDate[3])){
+            fabricSet = fabricRepository.findAllByStatusSoldOutRollInReadyFabricsInYear();
+        }
+        if(fabricSet != null && !fabricSet.isEmpty()){
+            for (Fabric fabric : fabricSet) {
+                List<Object[]> infoFabrics = fabricRepository.allInfoFabricAndSumMetricIfStatusRollReady(fabric.getBatchNumberId());
+                List<Roll> rollLists = rollRepository.findByFabricIdAndStatusRollSoldOut(fabric.getBatchNumberId(), StatusRoll.SOLD_OUT.toString());
+                if (infoFabrics.get(0) != null && !rollLists.isEmpty()) {
+                    allDataFabric.put(infoFabrics, rollLists);
+                } else {
+                    sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " находится в работе, по ней нет готовых рулонов");
+                }
+            }
+        }
+        return allDataFabric;
     }
 /*
     private void startWorkShift(long chatId, String messageText){

@@ -20,14 +20,14 @@ public class WriteFile {
     private RollRepository rollRepository;
     @Autowired
     private FabricRepository fabricRepository;
-    private final String[] headersFabric = {"Номер партии", "Название партии", "Метраж партии", "Дата изготовления", "Фактический метраж партии", "Статус партии"};
-    private final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления", "Статус рулона", "Номер партии"};
+    private final String[] headersFabric = {"Номер партии", "Название партии", "Метраж партии", "Дата изготовления/продажи", "Фактический метраж партии", "Статус партии"};
+    private final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления/продажи", "Статус рулона", "Номер партии"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
-        if((messageText.equals("Текущий месяц") || messageText.equals("За 2 месяца")) || (messageText.equals("За полгода") || messageText.equals("Текущий год"))){
+       /* if((messageText.equals("Текущий месяц") || messageText.equals("За 2 месяца")) || (messageText.equals("За полгода") || messageText.equals("Текущий год"))){
             headersFabric[3] = "Дата продажи";
             headersRoll[3] = "Дата продажи";
-        }
+        }*/
         // Создаем новый Excel-файл
         XSSFWorkbook workbook = new XSSFWorkbook();
         // Задаем стиль, текст в ячейке по центру
@@ -139,8 +139,8 @@ public class WriteFile {
         } catch (Exception e) {
             //    log.error("ERROR_TEXT " + e.getMessage());
         }
-        headersFabric[3] = "Дата изготовления";
-        headersRoll[3] = "Дата изготовления";
+      /*  headersFabric[3] = "Дата изготовления";
+        headersRoll[3] = "Дата изготовления";*/
     }
 
 }

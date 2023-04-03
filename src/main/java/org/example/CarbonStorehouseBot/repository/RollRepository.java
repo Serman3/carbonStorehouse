@@ -27,7 +27,7 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
    @Query(value = "SELECT * FROM `roll` WHERE `fabric_id` = :fabricId AND `number_roll` = :numberRoll", nativeQuery = true)
    Optional<Roll> findByNumberRollAndFabricId(@Param("numberRoll") int numberRoll, @Param("fabricId") String fabricId);
 
-   @Query(value = "SELECT * FROM `roll` WHERE `fabric_id` = :fabricId", nativeQuery = true)
+   @Query(value = "SELECT * FROM `roll` WHERE `fabric_id` = :fabricId ORDER BY number_roll", nativeQuery = true)
    List<Roll> findByFabricId(@Param("fabricId") String fabricId);
 
    @Query(value = """
@@ -42,6 +42,7 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
             SELECT *
             FROM roll
             WHERE fabric_id = :fabricId AND status_roll = :statusRoll
+            ORDER BY number_roll
             """, nativeQuery = true)
    List<Roll>findByFabricIdAndStatusRollSoldOut(@Param("fabricId") String fabricId, @Param("statusRoll") String statusRoll);
 

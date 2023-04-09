@@ -2,9 +2,14 @@ package org.example.CarbonStorehouseBot.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -33,11 +38,11 @@ public class Roll {
     @Column(name = "status_roll", columnDefinition = "ENUM('READY','NOT_READY', 'AT_WORK', 'SOLD_OUT')", nullable = false)
     private StatusRoll statusRoll;
 
-    @ManyToOne(cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
     @JoinColumn(name = "fabric_id", referencedColumnName = "id", nullable = false)
     private Fabric fabric;
 
-   /* @ManyToMany(cascade = {CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @ManyToMany(cascade = {CascadeType.MERGE}, fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinTable(name = "rolls_colleagues_table",
             joinColumns = {@JoinColumn(name = "roll_id", referencedColumnName = "id")
@@ -45,23 +50,23 @@ public class Roll {
             inverseJoinColumns = {
                     @JoinColumn(name = "colleague_id", referencedColumnName = "id")
             })
-    private Set<Colleague> colleaguess = new HashSet<>();
+    private Set<Colleague> colleagueSet = new HashSet<>();
 
     public void addColleague(Colleague colleague) {
-        colleaguess.add(colleague);
+        colleagueSet.add(colleague);
         colleague.getRolls().add(this);
     }
 
     public void removeColleague(Colleague colleague) {
-        colleaguess.remove(colleague);
+        colleagueSet.remove(colleague);
         colleague.getRolls().remove(this);
     }
 
     public void remove(){
-        for(Colleague colleague : new ArrayList<>(colleaguess)){
+        for(Colleague colleague : new ArrayList<>(colleagueSet)){
             removeColleague(colleague);
         }
-    }*/
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -33,11 +33,11 @@ public class Fabric implements Serializable {
     @Column(name = "date_manufacture", columnDefinition = "DATETIME", nullable = false)
     private LocalDate dateManufacture;
 
-    @OneToMany(mappedBy = "fabric", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "fabric", cascade = CascadeType.ALL)
     @BatchSize(size = 2)
     private List<Roll> rolls;
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinTable(name = "fabrics_colleagues_table",
     joinColumns = {@JoinColumn(name = "fabric_id", referencedColumnName = "id")

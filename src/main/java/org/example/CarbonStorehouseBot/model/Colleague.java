@@ -2,7 +2,6 @@ package org.example.CarbonStorehouseBot.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -12,7 +11,6 @@ import java.util.Set;
 
 @Getter
 @Setter
-@ToString
 @Entity
 @Table(name = "colleague")
 public class Colleague implements Serializable {
@@ -33,11 +31,11 @@ public class Colleague implements Serializable {
     @Column(name = "date_register", columnDefinition = "DATETIME", nullable = false)
     private LocalDate dateRegister;
 
-    @ManyToMany(mappedBy = "colleagues", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @ManyToMany(mappedBy = "colleagues", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     private Set<Fabric> fabrics = new HashSet<>();
 
-   /* @ManyToMany(mappedBy = "colleaguess", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
-    private Set<Roll> rolls = new HashSet<>();*/
+    @ManyToMany(mappedBy = "colleagueSet", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    private Set<Roll> rolls = new HashSet<>();
 
     @Override
     public boolean equals(Object o) {

@@ -63,9 +63,4 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
             WHERE fabric_id = :fabricId AND number_roll = :numberRoll
            """, nativeQuery = true)
    void updateByStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("numberRoll") int numberRoll, @Param("date") LocalDate date);
-
- /*  @Transactional
-   @Modifying
-   @Query(value = "DELETE FROM `rolls_colleagues_table` r WHERE r.roll_id = :id", nativeQuery = true)
-   void deleteFromRollAndColleague(@Param("id") long id);*/
 }

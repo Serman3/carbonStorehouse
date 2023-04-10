@@ -36,6 +36,15 @@ public interface FabricRepository extends CrudRepository<Fabric, String> {
     int sumReadyRollNull(@Param("fabricId") String fabricId);
 
     @Query(value = """
+            SELECT count(*)
+            FROM fabric f
+            JOIN roll r ON r.fabric_id = f.id
+            WHERE f.id = :fabricId
+            AND r.status_roll = "AT_WORK"
+            """, nativeQuery = true)
+    int countRollStatusRollAtWork(@Param("fabricId") String fabricId);
+
+    @Query(value = """
             SELECT f.id, f.name_fabric, f.status_fabric, f.metric_area_batch, f.date_manufacture, sum(r.roll_metric) AS actual_metric
             FROM carbon_storehouse.fabric f
             JOIN carbon_storehouse.roll r ON f.id = r.fabric_id

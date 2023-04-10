@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.xssf.usermodel.*;
 import org.example.CarbonStorehouseBot.model.Roll;
+import org.example.CarbonStorehouseBot.model.RollsColleaguesTable;
 import org.example.CarbonStorehouseBot.repository.FabricRepository;
 import org.example.CarbonStorehouseBot.repository.RollRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,10 @@ public class WriteFile {
     private RollRepository rollRepository;
     @Autowired
     private FabricRepository fabricRepository;
-    private final String[] headersFabric = {"Номер партии", "Название партии", "Метраж партии", "Дата изготовления/продажи", "Фактический метраж партии", "Статус партии"};
-    private final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления/продажи", "Статус рулона", "Номер партии"};
+    private static final String[] headersFabric = {"Номер партии", "Название партии", "Метраж партии", "Дата изготовления/продажи", "Фактический метраж партии", "Статус партии"};
+    private static final String[] headersRoll = {"Рулон", "Метраж рулона", "Заметка", "Дата изготовления/продажи", "Статус рулона", "Номер партии"};
+    private static final String[] headersNameAndMetricColleague = {"Имя сотрудника", "Метраж за месяц"};
+    private static final String[] headersAllManufactureColleague = {"Партия", "Рулон", "Метраж рулона", "Дата рабочей смены"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
        /* if((messageText.equals("Текущий месяц") || messageText.equals("За 2 месяца")) || (messageText.equals("За полгода") || messageText.equals("Текущий год"))){
@@ -141,6 +144,88 @@ public class WriteFile {
         }
       /*  headersFabric[3] = "Дата изготовления";
         headersRoll[3] = "Дата изготовления";*/
+    }
+
+    protected void writeExcelFileManufactureColleague(Map<List<Object[]>, List<RollsColleaguesTable>> allDataColleague, String messageText){
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        // Задаем стиль, текст в ячейке по центру
+        XSSFCellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setAlignment(HorizontalAlignment.CENTER);
+        // Создаем шапку
+        XSSFSheet sheet = workbook.createSheet("Метраж за месяц");
+        XSSFRow headerFabricRow = sheet.createRow(0);
+        for (int i = 0; i < headersNameAndMetricColleague.length; i++) {
+            XSSFCell cell = headerFabricRow.createCell(i);
+            cell.setCellValue(headersNameAndMetricColleague[i]);
+            cell.setCellStyle(cellStyle);
+            sheet.autoSizeColumn(i);
+        }
+
+        XSSFSheet sheet2 = workbook.createSheet("Подробные данные");
+        XSSFRow headerRollRow = sheet2.createRow(0);
+        for (int i = 0; i < headersAllManufactureColleague.length; i++) {
+            XSSFCell cell = headerRollRow.createCell(i);
+            cell.setCellValue(headersAllManufactureColleague[i]);
+            cell.setCellStyle(cellStyle);
+            sheet.autoSizeColumn(i);
+        }
+
+        // Заполняем данными
+        int rowIndexNameAndMetric = 1;
+        int rowIndexAllDataManufacture = 1;
+
+        for (Map.Entry<List<Object[]>, List<RollsColleaguesTable>> entry : allDataColleague.entrySet()){
+            List<Object[]> nameAndMetricColleague = entry.getKey();
+            List<RollsColleaguesTable> allDataManufactureColleague = entry.getValue();
+
+            for (Object[] nameAndMetric : nameAndMetricColleague) {
+                XSSFRow dataRow = sheet.createRow(rowIndexNameAndMetric++);
+                int cellIndex = 0;
+
+                XSSFCell cell1 = dataRow.createCell(cellIndex++);
+                cell1.setCellValue(nameAndMetric[0].toString());
+                cell1.setCellStyle(cellStyle);
+                sheet.autoSizeColumn(cellIndex);
+
+                XSSFCell cell2 = dataRow.createCell(cellIndex++);
+                cell2.setCellValue(nameAndMetric[1].toString());
+                cell2.setCellStyle(cellStyle);
+                sheet.autoSizeColumn(cellIndex);
+            }
+
+            for (RollsColleaguesTable rollsColleaguesTable : allDataManufactureColleague) {
+                XSSFRow dataRow = sheet2.createRow(rowIndexAllDataManufacture++);
+                int cellIndex2 = 0;
+
+                XSSFCell cell = dataRow.createCell(cellIndex2++);
+                cell.setCellValue(rollsColleaguesTable.getNumberFabric());
+                cell.setCellStyle(cellStyle);
+                sheet2.autoSizeColumn(cellIndex2);
+
+                XSSFCell cell1 = dataRow.createCell(cellIndex2++);
+                cell1.setCellValue(rollsColleaguesTable.getNumberRoll());
+                cell1.setCellStyle(cellStyle);
+                sheet2.autoSizeColumn(cellIndex2);
+
+                XSSFCell cell2 = dataRow.createCell(cellIndex2++);
+                cell2.setCellValue(rollsColleaguesTable.getMetricColleague());
+                cell2.setCellStyle(cellStyle);
+                sheet2.autoSizeColumn(cellIndex2);
+
+                XSSFCell cell3 = dataRow.createCell(cellIndex2++);
+                cell3.setCellValue(rollsColleaguesTable.getDateWorkingShift().toString());
+                cell3.setCellStyle(cellStyle);
+                sheet2.autoSizeColumn(cellIndex2);
+            }
+        }
+        // Сохраняем файл
+        try {
+            FileOutputStream outputStream = new FileOutputStream("C:/doc/" + messageText + ".xlsx");
+            workbook.write(outputStream);
+            workbook.close();
+        } catch (Exception e) {
+            //    log.error("ERROR_TEXT " + e.getMessage());
+        }
     }
 
 }

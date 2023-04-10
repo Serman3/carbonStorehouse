@@ -25,6 +25,9 @@ public class RollsColleaguesTable implements Serializable {
     @JoinColumn(name = "colleague_id")
     private Colleague colleague;
 
+    @Column(name = "number_roll", nullable = false)
+    private int numberRoll;
+
     @Column(name = "metric_colleague", nullable = false)
     private Double metricColleague;
 

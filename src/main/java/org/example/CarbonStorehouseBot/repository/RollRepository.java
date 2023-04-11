@@ -63,4 +63,13 @@ public interface RollRepository extends CrudRepository<Roll, Long> {
             WHERE fabric_id = :fabricId AND number_roll = :numberRoll
            """, nativeQuery = true)
    void updateByStatusRoll(@Param("statusRoll") String statusRoll, @Param("fabricId") String fabricId, @Param("numberRoll") int numberRoll, @Param("date") LocalDate date);
+
+   @Query(value = """
+           SELECT r.number_roll
+           FROM roll r
+           JOIN fabric f ON f.id = r.fabric_id
+           WHERE f.id = :fabricId
+           AND r.status_roll = "AT_WORK"
+           """, nativeQuery = true)
+   List<Integer> countNumberRollsStatusAtWork(@Param("fabricId") String fabricId);
 }

@@ -27,10 +27,6 @@ public class WriteFile {
     private static final String[] headersAllManufactureColleague = {"Партия", "Рулон", "Метраж рулона", "Дата рабочей смены"};
 
     protected void writeExcelFileReadyFabric(Map<List<Object[]>, List<Roll>> allDataFabric, String messageText){
-       /* if((messageText.equals("Текущий месяц") || messageText.equals("За 2 месяца")) || (messageText.equals("За полгода") || messageText.equals("Текущий год"))){
-            headersFabric[3] = "Дата продажи";
-            headersRoll[3] = "Дата продажи";
-        }*/
         // Создаем новый Excel-файл
         XSSFWorkbook workbook = new XSSFWorkbook();
         // Задаем стиль, текст в ячейке по центру
@@ -142,8 +138,6 @@ public class WriteFile {
         } catch (Exception e) {
             //    log.error("ERROR_TEXT " + e.getMessage());
         }
-      /*  headersFabric[3] = "Дата изготовления";
-        headersRoll[3] = "Дата изготовления";*/
     }
 
     protected void writeExcelFileManufactureColleague(Map<List<Object[]>, List<RollsColleaguesTable>> allDataColleague, String messageText){

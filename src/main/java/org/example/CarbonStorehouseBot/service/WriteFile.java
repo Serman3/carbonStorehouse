@@ -13,7 +13,7 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Map;
 
-//@Slf4j
+@Slf4j
 @Component
 public class WriteFile {
 
@@ -136,7 +136,7 @@ public class WriteFile {
             workbook.write(outputStream);
             workbook.close();
         } catch (Exception e) {
-            //    log.error("ERROR_TEXT " + e.getMessage());
+            log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 
@@ -218,7 +218,7 @@ public class WriteFile {
             workbook.write(outputStream);
             workbook.close();
         } catch (Exception e) {
-            //    log.error("ERROR_TEXT " + e.getMessage());
+            log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 

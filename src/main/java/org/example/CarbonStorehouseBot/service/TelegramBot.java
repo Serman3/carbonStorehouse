@@ -1,6 +1,7 @@
 package org.example.CarbonStorehouseBot.service;
 
 import com.vdurmont.emoji.EmojiParser;
+import lombok.extern.slf4j.Slf4j;
 import org.example.CarbonStorehouseBot.config.BotConfig;
 import org.example.CarbonStorehouseBot.model.*;
 import org.example.CarbonStorehouseBot.repository.ColleagueRepository;
@@ -27,7 +28,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 
-//@Slf4j
+@Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
@@ -95,8 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         }catch (TelegramApiException e){
-            e.printStackTrace();
-            //   log.error("Error setting bot command list " + e.getMessage());
+            log.error("Error setting bot command list " + e.getMessage());
         }
     }
 
@@ -400,7 +400,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             colleague.setUserName(chat.getUserName());
             colleague.setDateRegister(LocalDate.now());
             colleagueRepository.save(colleague);
-            //    log.info("Colleague save " + colleague);
+            log.info("Colleague save " + colleague.getUserName());
         }
     }
 
@@ -432,7 +432,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             fabric.setStatusFabric(StatusFabric.AT_WORK);
             fabricRepository.save(fabric);
             sendMessage(chatId, colleague.getFirstName() + ", вы начали делать новую партию " + messageText);
-            //     log.info(colleague.getFirstName() + " начал делать новую партию " + messageText);
+            log.info(colleague.getUserName() + " начал делать новую партию " + messageText);
         }else{
             sendMessage(chatId, "Не удается начать партию, неверный формат ввода");
         }
@@ -457,7 +457,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             fabric.setDateManufacture(LocalDate.now());
             fabricRepository.save(fabric);
             sendMessage(chatId, "Партия " + messageText + " завершена");
-            //   log.info("Партия " + messageText + " завершена");
+            log.info("Партия " + messageText + " завершена");
         }else{
             sendMessage(chatId, "Не удается завершить партию, неверный формат ввода");
         }
@@ -474,7 +474,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 fabric.removeColleague(colleague);
                 fabricRepository.deleteFabric(fabric.getBatchNumberId());
                 sendMessage(chatId, "Партия " + messageText + " была удалена");
-                //   log.info("Партия " + messageText + " была удалена");
+                log.info("Партия " + messageText + " была удалена");
             }
             else {
                 sendMessage(chatId, "Не удается удалить партию, такой партии не существует");
@@ -499,7 +499,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             fabricRepository.updateStatusFabricSoldOut(StatusFabric.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
             rollRepository.updateAllStatusRollSoldOut(StatusRoll.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
             sendMessage(chatId, "Партия " + fabric.getBatchNumberId() + " была продана");
-            //   log.info("Партия " + fabric.getBatchNumberId() + " была продана");
+            log.info("Партия " + fabric.getBatchNumberId() + " была продана");
         }else if(messageText.matches(REGEX_NUMBER_FABRIC_AND_ROLL)){
             String[] data = messageText.split("\s");
             int numberRoll = Integer.parseInt(data[1]);
@@ -522,7 +522,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if(fabricRepository.sumReadyRollNull(fabric.getBatchNumberId()) == 0){
                 fabricRepository.updateStatusFabricSoldOut(StatusFabric.SOLD_OUT.toString(), fabric.getBatchNumberId(), LocalDate.now());
             }
-            //    log.info("В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
+            log.info("В партии " + fabric.getBatchNumberId() + " рулон под номером " + numberRoll + " был продан");
         }else{
             sendMessage(chatId, "Не удается обновить статус на продано, неверный формат ввода");
         }
@@ -659,7 +659,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 for(Integer numberRoll : countNumberRollsStatusAtWork){
                     result.append(numberRoll).append(", ");
                 }
-                sendMessage(chatId, "Не удается добавить рулон. Завершите рулоны: " + result + "которые в работе.");
+                sendMessage(chatId, "Не удается добавить рулон. Завершите рулоны: " + result + ", в партии " + fabric.getBatchNumberId() + "которые в работе.");
                 return;
             }
             Roll roll = new Roll();
@@ -671,7 +671,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             roll.setFabric(fabric);
             rollRepository.save(roll);
             sendMessage(chatId, "Вы начали делать " + data[1] + "й рулон, партия " + data[0]);
-            //    log.info("Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
+            log.info("Вы начали делать " + data[1] + "й рулон, партии " + data[0]);
         }else{
             sendMessage(chatId, "Не удается начать новый руллон, неверный формат ввода");
         }
@@ -700,7 +700,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             roll.setDateFulfilment(LocalDate.now());
             rollRepository.save(roll);
             sendMessage(chatId, "Вы внесли замечание по рулону " + data[1] + ", партия " + fabric.getBatchNumberId());
-            //   log.info("Замечание по рулону " + data[1] + " " + remark + " в партии " + data[0]);
+            log.info("Замечание по рулону " + data[1] + " " + remark + " в партии " + data[0]);
         }else {
             sendMessage(chatId, "Не удается внести замечания по рулону, неверный формат ввода");
         }
@@ -730,7 +730,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             roll.setRollMetric(roundedMetric);
             rollRepository.save(roll);
             sendMessage(chatId, "Вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + " , остаток составляет " + roll.getRollMetric());
-            //    log.info("Партия "+ roll.getFabric().getBatchNumberId() + ", вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + ", остаток составляет " + roll.getRollMetric() + " метров");
+            log.info("Партия "+ roll.getFabric().getBatchNumberId() + ", вы отрезали " + metricPiece + " метров" + " от рулона " + data[1]  + ", остаток составляет " + roll.getRollMetric() + " метров");
         }else {
             sendMessage(chatId, "Не удается отрезать от рулона, неверный формат ввода");
         }
@@ -754,6 +754,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             roll.setRollMetric(metricPiece);
             rollRepository.save(roll);
             sendMessage(chatId, "Вы обновили метраж рулона " + data[1]  + ", теперь метраж составляет " + roll.getRollMetric());
+            log.info("Партия "+ roll.getFabric().getBatchNumberId() + ", обновлен метраж в рулоне " + roll.getNumberRoll() + ", теперь метраж составляет " + metricPiece + " метров");
         }else {
             sendMessage(chatId, "Не удается обновить метраж рулона, неверный формат ввода");
         }
@@ -784,6 +785,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             rollRepository.save(roll);
             saveRollsColleaguesData(roll, colleague, rollMetric);
             sendMessage(chatId, colleague.getFirstName() + ", вы сделали " + rollMetric + " метров в " + roll.getNumberRoll() + "м рулоне, партия " + fabric.getBatchNumberId());
+            log.info(colleague.getFirstName() + ", вы сделали " + rollMetric + " метров в " + roll.getNumberRoll() + "м рулоне, партия " + fabric.getBatchNumberId());
         }else {
             sendMessage(chatId, "Не удается внести шаги, неверный формат ввода");
         }
@@ -816,6 +818,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             rollRepository.save(roll);
             saveRollsColleaguesData(roll, colleague, rollMetric);
             sendMessage(chatId, colleague.getFirstName() + ", вы завершили " + data[1] + "й рулон, партия " + fabric.getBatchNumberId());
+            log.info(colleague.getFirstName() + ", вы завершили " + data[1] + "й рулон, партия " + fabric.getBatchNumberId());
         }else {
             sendMessage(chatId, "Не удается завершить рулон, неверный формат ввода");
         }
@@ -867,7 +870,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             rollsColleaguesRepository.deleteFromRollAndColleague(roll.getId());
             rollRepository.deleteByFabricIdAndNumberRoll(fabric.getBatchNumberId(), Integer.parseInt(data[1]));
             sendMessage(chatId, "Вы удалили " + data[1] + "й рулон, партия " + fabric.getBatchNumberId());
-            //     log.info("Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
+            log.info("Вы удалили " + data[1] + "й рулон ,партии " + data[0]);
         }else{
             sendMessage(chatId, "Не удается удалить рулон, неверный формат ввода");
         }
@@ -913,7 +916,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(sendDocument);
         } catch (TelegramApiException e) {
-            //    log.error("ERROR_TEXT " + e.getMessage());
+            log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 
@@ -999,7 +1002,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            //    log.error("ERROR_TEXT " + e.getMessage());
+            log.error("ERROR_TEXT " + e.getMessage());
         }
     }
 
